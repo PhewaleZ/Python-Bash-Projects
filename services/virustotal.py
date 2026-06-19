@@ -1,7 +1,6 @@
 import requests
 import os
 from dotenv import load_dotenv
-import json
 import time
 
 #NOTE: When a scan is done by virustotal and one of the scanning functions are used, take note that a tuple is returned, the first value in the tuple is going to be a boolean to indicate whether the result was successful
@@ -44,16 +43,20 @@ def response_error_check(rec_response):
         return (True,'',error)
     
 
-    
-async def scan_IP(target_IP):
+#The variable scan_type will indicate whether an IP ao domain is being scanned
+async def scan_IP(target_IP_DOMAIN, scan_type):
     count = 1
     load_dotenv()
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
     if api_key == None:
-        return (False,)
+        return (False,'Virus Total API key is None')
 
-    url = f"https://www.virustotal.com/api/v3/ip_addresses/{target_IP}"
+    if scan_type == 'IP': 
+        url = f"https://www.virustotal.com/api/v3/ip_addresses/{target_IP_DOMAIN}"
+    
+    if scan_type == 'DOMAIN':
+        url = f"https://www.virustotal.com/api/v3/domains/{target_IP_DOMAIN}"
 
     headers = {
         "accept": "application/json",
@@ -84,11 +87,12 @@ async def scan_IP(target_IP):
         return (False, last_error)
     
     #If no errors are caught then the results are aggregated
-    virus_total_res = aggregate_virustotal_results_IP(rec_response=response)
+    virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=response, info1=target_IP)
 
     return (True, virus_total_res)
 
-def aggregate_virustotal_results_IP(rec_response, info1):
+#info1 contains the IP address of the target IP address or Domain name
+def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
     #this calculates the total number of engines whihc virustotal queried
     total_engines = rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]+rec_response["data"]["attributes"]["last_analysis_stats"]["suspicious"]+rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"]+rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]+rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
     warning= False
@@ -110,13 +114,14 @@ def aggregate_virustotal_results_IP(rec_response, info1):
     return (formatted_response)
 
 
+
 async def scan_file(file_hash):
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
     if api_key == None:
-        return False
+        return (False, 'Virus Total API key is None')
     
     url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
 
@@ -153,7 +158,6 @@ async def scan_file(file_hash):
 
 
 def aggregate_virustotal_results_FILEHASH(response):
-
     harmless_count= response["data"]["attributes"]["total_votes"]["harmless"]
     malicious_count= response["data"]["attributes"]["total_votes"]["malicious"]
     total_engines = harmless_count+malicious_count
@@ -180,3 +184,19 @@ def aggregate_virustotal_results_FILEHASH(response):
     #NOTE: Add function which inputs to database here
 
     return formatted_response
+
+#THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
+def scan_URL(target_URL):
+    url = "https://www.virustotal.com/api/v3/urls"
+
+    payload = { "url": target_URL }
+    headers = {
+        "accept": "application/json",
+        "x-apikey": "key here",
+        "content-type": "application/x-www-form-urlencoded"
+    }
+
+    response = requests.post(url, data=payload, headers=headers)
+    response = response.json()
+    analysis_id = response["data"]["id"]
+    
