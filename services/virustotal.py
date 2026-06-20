@@ -38,7 +38,7 @@ def response_analysis(url, headers):
         return (False, last_error)
     
     if okay is True:
-        return (True, response)
+        return (True, response.json())
 
 #This function is to check for any errors in the result recieved by API
 def response_error_check(rec_response):
@@ -75,7 +75,7 @@ def response_error_check(rec_response):
     
 
 #The variable scan_type will indicate whether an IP ao domain is being scanned
-async def scan_IP(target_IP_DOMAIN, scan_type):
+async def scan_IP_DOMAIN(target_IP_DOMAIN, scan_type):
     load_dotenv()
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
@@ -94,6 +94,7 @@ async def scan_IP(target_IP_DOMAIN, scan_type):
     }
 
     #NOTE: check[1] can return the successful results if check[0] is true else if check[0] is false then check[1] is the last error message
+    #The returned response in the tuple "check", if succssful, is a python formatted json
     check = response_analysis(url=url, headers=headers)
     if check[0] is True:
         virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=check[1], info1=target_IP_DOMAIN)
@@ -199,7 +200,10 @@ def aggregate_virustotal_results_FILEHASH(response):
 
 #THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
 def scan_URL(target_URL):
+    #The varibale "count" refers to how mnay times the analysis will be attempted to be checked if it is running or its done
+    count = 0
     error_check = False
+    sent_request = False
     url = "https://www.virustotal.com/api/v3/urls"
 
     payload = { "url": target_URL }
@@ -208,13 +212,42 @@ def scan_URL(target_URL):
         "x-apikey": "key here",
         "content-type": "application/x-www-form-urlencoded"
     }
+#NOTE: WORK ON FIXING THIS THE RESPONSE SENT SHOULD BE CHECKED FOR ERROR THEN IF IT IS ERROR FREE IT SHOULD BE CHECKED UNTIL IT IS COMPLETED USING THE ANALYSIS ID
+    while count <= 20:
+        if sent_request is False:
+            response = requests.post(url, data=payload, headers=headers)
+            confirmation = response_analysis(rec_response=response)
+            response = response.json()
+            analysis_id = response["data"]["id"]
 
-    while True:
-        response = requests.post(url, data=payload, headers=headers)
-        if error_check is False:
-            confirmation =  response_error_check(rec_response=response)
-        response = response.json()
-        analysis_id = response["data"]["id"]
         if response["data"]["attributes"]["status"] == 'queued' or response["data"]["attributes"]["status"] == 'running':
             time.sleep(5)
             continue
+        #NOTE: function which aggregates the response will be here
+
+#info1 stores the url which was scanned
+def aggregate_virustotal_results_URLSCAN(rec_resonse, info1):
+    warning = False
+
+    malicious_count=rec_resonse["data"]["attributes"]["stats"]["malicious"]
+    suspicious_count=rec_resonse["data"]["attributes"]["stats"]["suspicious"]
+    undetected_count=rec_resonse["data"]["attributes"]["stats"]["undetected"]
+    harmless_count=rec_resonse["data"]["attributes"]["stats"]["harmless"]
+    timeout_count=rec_resonse["data"]["attributes"]["stats"]["timeout"]
+    conf_timeout=rec_resonse["data"]["attributes"]["stats"]["confirmed_timeout"]
+    failure_count=rec_resonse["data"]["attributes"]["stats"]["failure"]
+    type_unsupported_count=rec_resonse["data"]["attributes"]["stats"]["type_unsupported"]
+    total_engines = malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
+
+    if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
+        warning = True
+    formatted_response={
+        "target_url":info1,
+        "warning": warning,
+        "details":{
+            "level3":undetected_count+timeout_count+conf_timeout+failure_count+type_unsupported_count,
+            "level2":harmless_count,
+            "level1":malicious_count+suspicious_count
+        }
+    }
+    return formatted_response
