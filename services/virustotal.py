@@ -9,6 +9,37 @@ class PermenantERROR(Exception):
 class NONPermenantERROR(Exception):
     pass
 
+#This function is the 'brain' of error checking
+def response_analysis(url, headers):
+    #NOTE: This part involves the request to virustotal being done over and over again if an error occurs
+    #NOTE: confirmation[0] indicates whether or not the received response is okay
+    #NOTE: confirmation[1] indicates the type/severity of the error, if critcal then the request is not repeated
+    #NOTE: confirmation[2] provides more detail on the error
+    okay = False
+    count = 1
+    while count <= 3:
+        response = requests.get(url=url, headers=headers)
+        confirmation = response_error_check(rec_response=response)
+
+        if confirmation[0] is False and confirmation[1] == 'NON-CRITICAL':
+            count +=1
+            last_error=confirmation[2]
+            continue
+
+        if confirmation[0] is False and confirmation[1] == 'CRITICAL':
+            #This will eject out of this and starts the process of returning an error to the user
+            return (False, confirmation[2])
+        
+        if confirmation[0] is True:
+            okay = True
+            break
+
+    if okay is False:
+        return (False, last_error)
+    
+    if okay is True:
+        return (True, response)
+
 #This function is to check for any errors in the result recieved by API
 def response_error_check(rec_response):
     json_rec_response=rec_response.json()
@@ -45,7 +76,6 @@ def response_error_check(rec_response):
 
 #The variable scan_type will indicate whether an IP ao domain is being scanned
 async def scan_IP(target_IP_DOMAIN, scan_type):
-    count = 1
     load_dotenv()
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
@@ -63,33 +93,14 @@ async def scan_IP(target_IP_DOMAIN, scan_type):
         "x-apikey": api_key
     }
 
-    okay = False
-    #NOTE: This part involves the request to virustotal being done over and over again if an error occurs
-    #NOTE: confirmation[0] indicates whether or not the received response is okay
-    #NOTE: confirmation[1] indicates the type/severity of the error, if critcal then the request is not repeated
-    #NOTE: confirmation[2] provides more detail on the error
-    while count <= 3:
-        response = requests.get(url, headers=headers, timeout=10)
-        confirmation = response_error_check(rec_response=response)
-        #NOTE: WATCH FOR STRING VALUES AND BE SURE THEY MATCH
-        if confirmation[0] == False and confirmation[1] == 'NON-CRITICAL':
-            count +=1
-            last_error=confirmation[2]
-
-        if confirmation[0] == False and confirmation[1] == 'CRITICAL':
-            #This will eject out of this and starts the process of returning an error to the user
-            return (False, confirmation[2])
-        
-        if confirmation[0] == True:
-            okay = True
-    #This part also catches an error
-    if okay == False:
-        return (False, last_error)
+    #NOTE: check[1] can return the successful results if check[0] is true else if check[0] is false then check[1] is the last error message
+    check = response_analysis(url=url, headers=headers)
+    if check[0] is True:
+        virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=check[1], info1=target_IP_DOMAIN)
+        return (True, virus_total_res)
     
-    #If no errors are caught then the results are aggregated
-    virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=response, info1=target_IP_DOMAIN)
-
-    return (True, virus_total_res)
+    if check[1] is False:
+        return (False, check[1])
 
 #info1 contains the IP address of the target IP address or Domain name
 def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
@@ -151,6 +162,7 @@ async def scan_file(file_hash):
     #This part also catches an error
     if okay == False:
         return (False, last_error)
+     
     
     #If no errors are caught then the results are aggregated
     virus_total_res = aggregate_virustotal_results_FILEHASH(response=response)
@@ -205,3 +217,4 @@ def scan_URL(target_URL):
         analysis_id = response["data"]["id"]
         if response["data"]["attributes"]["status"] == 'queued' or response["data"]["attributes"]["status"] == 'running':
             time.sleep(5)
+            continue
