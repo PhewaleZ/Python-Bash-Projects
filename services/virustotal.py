@@ -87,7 +87,7 @@ async def scan_IP(target_IP_DOMAIN, scan_type):
         return (False, last_error)
     
     #If no errors are caught then the results are aggregated
-    virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=response, info1=target_IP)
+    virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=response, info1=target_IP_DOMAIN)
 
     return (True, virus_total_res)
 
@@ -187,6 +187,7 @@ def aggregate_virustotal_results_FILEHASH(response):
 
 #THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
 def scan_URL(target_URL):
+    error_check = False
     url = "https://www.virustotal.com/api/v3/urls"
 
     payload = { "url": target_URL }
@@ -196,7 +197,11 @@ def scan_URL(target_URL):
         "content-type": "application/x-www-form-urlencoded"
     }
 
-    response = requests.post(url, data=payload, headers=headers)
-    response = response.json()
-    analysis_id = response["data"]["id"]
-    
+    while True:
+        response = requests.post(url, data=payload, headers=headers)
+        if error_check is False:
+            confirmation =  response_error_check(rec_response=response)
+        response = response.json()
+        analysis_id = response["data"]["id"]
+        if response["data"]["attributes"]["status"] == 'queued' or response["data"]["attributes"]["status"] == 'running':
+            time.sleep(5)
