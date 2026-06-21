@@ -10,7 +10,10 @@ class NONPermenantERROR(Exception):
     pass
 
 #This function is the 'brain' of error checking
-def response_analysis(url, headers):
+#By default the payload is an empty string, if the endpoint needs to the url endpoint then the payload parameter is set right before the function is called
+#The value is_url will determine whether the conduct POST or GET request, in other words whether or not a url is being scanned
+#This function is what returns the python formatted json response
+def response_analysis(url, headers, is_url=False, payload=''):
     #NOTE: This part involves the request to virustotal being done over and over again if an error occurs
     #NOTE: confirmation[0] indicates whether or not the received response is okay
     #NOTE: confirmation[1] indicates the type/severity of the error, if critcal then the request is not repeated
@@ -18,8 +21,14 @@ def response_analysis(url, headers):
     okay = False
     count = 1
     while count <= 3:
-        response = requests.get(url=url, headers=headers)
-        confirmation = response_error_check(rec_response=response)
+
+        if is_url is False:
+            response = requests.get(url=url, headers=headers)
+        else:
+            response = requests.post(url, data=payload, headers=headers)
+
+        response = response.json()
+        confirmation = response_error_check(json_rec_response=response)
 
         if confirmation[0] is False and confirmation[1] == 'NON-CRITICAL':
             count +=1
@@ -41,8 +50,7 @@ def response_analysis(url, headers):
         return (True, response.json())
 
 #This function is to check for any errors in the result recieved by API
-def response_error_check(rec_response):
-    json_rec_response=rec_response.json()
+def response_error_check(json_rec_response):
     error = None
     try:
         if "error" in json_rec_response:
@@ -61,7 +69,7 @@ def response_error_check(rec_response):
                  case "TransientError":
                     raise NONPermenantERROR
          
-        if rec_response.status_code in [500, 502, 503, 504, 507, 505]:
+        if json_rec_response.status_code in [500, 502, 503, 504, 507, 505]:
             raise NONPermenantERROR
             
     except PermenantERROR:
@@ -118,8 +126,8 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
         'warning': warning,
         'details':{
             "level2":rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]+rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"],
-            "level1":rec_response["data"]["attributes"]["last_analysis_stats"]['suspicious'] +rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"] # type: ignore
-        } # type: ignore
+            "level1":rec_response["data"]["attributes"]["last_analysis_stats"]['suspicious'] +rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
+        }
     }
     
     #NOTE: ADD FUNCTION WHICH PUTS THE DATA INTO THE DATABASE HERE
@@ -142,68 +150,64 @@ async def scan_file(file_hash):
         "accept": "application/json"
     }
 
-    okay = False
-    #NOTE: This part involves the request to virustotal being done over and over again if an error occurs
-    #NOTE: confirmation[0] indicates whether or not the received response is okay
-    #NOTE: confirmation[1] indicates the type/severity of the error, if critcal then the request is not repeated
-    #NOTE: confirmation[2] provides more detail on the error
-    while count <= 3:
-        response = requests.get(url, headers=headers, timeout=10)
-        confirmation = response_error_check(rec_response=response)
-        if confirmation[0] == False and confirmation[1] == 'NON-CRITICAL':
-            count +=1
-            last_error=confirmation[2]
-
-        if confirmation[0] == False and confirmation[1] == 'CRITICAL':
-            #This will eject out of this and starts the process of returning an error to the user
-            return (False, confirmation[2])
-        
-        if confirmation[0] == True:
-            okay = True
-    #This part also catches an error
-    if okay == False:
-        return (False, last_error)
-     
+    check = response_analysis(url=url, headers=headers)
+    if check[0] is True:
+        virus_total_res = aggregate_virustotal_results_FILEHASH(rec_response=check[1])
+        return (True, virus_total_res)
     
-    #If no errors are caught then the results are aggregated
-    virus_total_res = aggregate_virustotal_results_FILEHASH(response=response)
-    return (True, virus_total_res)
+    if check[1] is False:
+        return (False, check[1])
 
 
-def aggregate_virustotal_results_FILEHASH(response):
-    harmless_count= response["data"]["attributes"]["total_votes"]["harmless"]
-    malicious_count= response["data"]["attributes"]["total_votes"]["malicious"]
-    total_engines = harmless_count+malicious_count
-    malicious_ratio = (malicious_count/total_engines)
-    value = round(malicious_ratio, 2)
-    match malicious_ratio:
+def aggregate_virustotal_results_FILEHASH(rec_response,info1):
+    harmless_vote_count= rec_response["data"]["attributes"]["total_votes"]["harmless"]
+    malicious_vote_count= rec_response["data"]["attributes"]["total_votes"]["malicious"]
+    total_engines = harmless_vote_count+malicious_vote_count
+    malicious_vote_ratio = (malicious_vote_count/total_engines)
+    value = round(malicious_vote_ratio, 2)
+    match malicious_vote_ratio:
         case x if 1 < x <= 0.7:
-            verdict = 'HARMFUL'
+            vote_verdict = 'HARMFUL'
         case x if 0.7 < x <= 0.5:
-            verdict = 'CONCERNING'
+            vote_verdict = 'CONCERNING'
         case x if 0.5 < x <= 0.2:
-            verdict = 'OKAY'
+            vote_verdict = 'OKAY'
         case _:
-            verdict = 'SAFE'
+            vote_verdict = 'SAFE'
 
-    formatted_response ={
-        'hash':response["data"]["attributes"]["sha256"],
-        'details':{
-            'verdict': verdict,
-            'actual_value': value,
+    malicious_count=rec_response["data"]["attributes"]["stats"]["malicious"]
+    suspicious_count=rec_response["data"]["attributes"]["stats"]["suspicious"]
+    undetected_count=rec_response["data"]["attributes"]["stats"]["undetected"]
+    harmless_count=rec_response["data"]["attributes"]["stats"]["harmless"]
+    timeout_count=rec_response["data"]["attributes"]["stats"]["timeout"]
+    conf_timeout=rec_response["data"]["attributes"]["stats"]["confirmed_timeout"]
+    failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
+    type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
+
+    if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
+        warning = True
+
+    formatted_response={
+        "target_url":info1,
+        "warning": warning,
+        "details":{
+            "voteverdict": vote_verdict,
+            "level3":undetected_count+timeout_count+conf_timeout+failure_count+type_unsupported_count,
+            "level2":harmless_count,
+            "level1":malicious_count+suspicious_count
         }
     }
-
-    #NOTE: Add function which inputs to database here
-
     return formatted_response
 
 #THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
 def scan_URL(target_URL):
-    #The varibale "count" refers to how mnay times the analysis will be attempted to be checked if it is running or its done
-    count = 0
-    error_check = False
-    sent_request = False
+    load_dotenv()
+
+    api_key = os.getenv("VIRUSTOTALAPI_KEY")
+
+    if api_key == None:
+        return (False, 'Virus Total API key is None')
+    
     url = "https://www.virustotal.com/api/v3/urls"
 
     payload = { "url": target_URL }
@@ -212,31 +216,56 @@ def scan_URL(target_URL):
         "x-apikey": "key here",
         "content-type": "application/x-www-form-urlencoded"
     }
-#NOTE: WORK ON FIXING THIS THE RESPONSE SENT SHOULD BE CHECKED FOR ERROR THEN IF IT IS ERROR FREE IT SHOULD BE CHECKED UNTIL IT IS COMPLETED USING THE ANALYSIS ID
+
+    check = response_analysis(url=url, headers=headers, is_url=True, payload=payload)
+
+    #This is what will occur if the query fails and nothing else is done
+    if check[0] is False:
+        return (False, check[1])
+    #If the query was done properly and was successful then the code continues
+        
+    analysis_id = check[1]["data"]["id"]
+    url = f"https://www.virustotal.com/api/v3/analyses/{analysis_id}"
+
+    headers = {
+            "accept": "application/json",
+            "x-apikey": "keyhere"
+        }
+    
+    count = 0
     while count <= 20:
-        if sent_request is False:
-            response = requests.post(url, data=payload, headers=headers)
-            confirmation = response_analysis(rec_response=response)
-            response = response.json()
-            analysis_id = response["data"]["id"]
+        url = f"https://www.virustotal.com/api/v3/analyses/{analysis_id}"
+
+        headers = {
+            "accept": "application/json",
+            "x-apikey": "keyhere"
+        }
+
+        response = requests.get(url, headers=headers)
+        response = response.json()
 
         if response["data"]["attributes"]["status"] == 'queued' or response["data"]["attributes"]["status"] == 'running':
             time.sleep(5)
+            count += 1
             continue
-        #NOTE: function which aggregates the response will be here
-
+        else:
+            virus_total_res = aggregate_virustotal_results_URLSCAN(rec_resonse=response, info1=target_URL)
+            return (True, virus_total_res)
+    
+    return (False, f'The api took too long do return a finished response, LAST KNOWN STATUS IS {response["data"]["attributes"]["status"]}')
+    
 #info1 stores the url which was scanned
-def aggregate_virustotal_results_URLSCAN(rec_resonse, info1):
+def aggregate_virustotal_results_URLSCAN(rec_response, info1):
     warning = False
 
-    malicious_count=rec_resonse["data"]["attributes"]["stats"]["malicious"]
-    suspicious_count=rec_resonse["data"]["attributes"]["stats"]["suspicious"]
-    undetected_count=rec_resonse["data"]["attributes"]["stats"]["undetected"]
-    harmless_count=rec_resonse["data"]["attributes"]["stats"]["harmless"]
-    timeout_count=rec_resonse["data"]["attributes"]["stats"]["timeout"]
-    conf_timeout=rec_resonse["data"]["attributes"]["stats"]["confirmed_timeout"]
-    failure_count=rec_resonse["data"]["attributes"]["stats"]["failure"]
-    type_unsupported_count=rec_resonse["data"]["attributes"]["stats"]["type_unsupported"]
+    malicious_count=rec_response["data"]["attributes"]["stats"]["malicious"]
+    suspicious_count=rec_response["data"]["attributes"]["stats"]["suspicious"]
+    undetected_count=rec_response["data"]["attributes"]["stats"]["undetected"]
+    harmless_count=rec_response["data"]["attributes"]["stats"]["harmless"]
+    timeout_count=rec_response["data"]["attributes"]["stats"]["timeout"]
+    conf_timeout=rec_response["data"]["attributes"]["stats"]["confirmed_timeout"]
+    failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
+    type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
     total_engines = malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
 
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
