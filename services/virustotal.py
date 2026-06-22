@@ -10,7 +10,7 @@ class NONPermenantERROR(Exception):
     pass
 
 #This function is the 'brain' of error checking
-#By default the payload is an empty string, if the endpoint needs to the url endpoint then the payload parameter is set right before the function is called
+#By default the payload is an empty string, if the endpoint needs to be the url endpoint then the payload parameter is set right before the function is called
 #The value is_url will determine whether the conduct POST or GET request, in other words whether or not a url is being scanned
 #This function is what returns the python formatted json response
 def response_analysis(url, headers, is_url=False, payload=''):
@@ -20,7 +20,7 @@ def response_analysis(url, headers, is_url=False, payload=''):
     #NOTE: confirmation[2] provides more detail on the error
     okay = False
     count = 1
-    while count <= 3:
+    while count <= 5:
 
         if is_url is False:
             response = requests.get(url=url, headers=headers)
@@ -113,6 +113,8 @@ async def scan_IP_DOMAIN(target_IP_DOMAIN, scan_type):
 
 #info1 contains the IP address of the target IP address or Domain name
 def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
+    warning = []
+
     malicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
     suspicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["suspicious"]
     undetected_count=rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"]
@@ -121,14 +123,15 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
     total_engines =malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count
 
     if (timeout_count > (0.35 * total_engines)):
-        warning = True
+        warning.append("A large number of engines couldnt scan")
 
     formatted_response = {
-        'target IP': info1,
+        'target': info1,
         'country': rec_response["data"]["attributes"]["country"],
-        'warning': warning,
+        'warnings': warning,
         'details':{
-            "level2":harmless_count+undetected_count,
+            "level3":undetected_count,
+            "level2":harmless_count,
             "level1":malicious_count+suspicious_count
         }
     }
@@ -164,20 +167,20 @@ async def scan_file(file_hash):
 
 def aggregate_virustotal_results_FILEHASH(rec_response,info1):
     warning = []
+
     sigma_stats=rec_response["data"]["attributes"]["sigma_analysis_stats"]
     sigma_stats_critical=sigma_stats["critical"]
     sigma_stats_high=sigma_stats["high"]
     sigma_stats_medium=sigma_stats["medium"]
     sigma_stats_low=sigma_stats["low"]
     total_sigma_stats=sigma_stats_critical+sigma_stats_high+sigma_stats_medium+sigma_stats_low
-    if sigma_stats_critical > 0 or (sigma_stats_high+sigma_stats_medium)> total_sigma_stats*0.50:
-        warning.append("Critical sigma scan")
+    if sigma_stats_critical > 0 or (sigma_stats_high+sigma_stats_medium) > total_sigma_stats*0.4:
+        warning.append("Strange or abnormal patterns observed")
 
     harmless_vote_count= rec_response["data"]["attributes"]["total_votes"]["harmless"]
     malicious_vote_count= rec_response["data"]["attributes"]["total_votes"]["malicious"]
     total_vote_engines = harmless_vote_count+malicious_vote_count
     malicious_vote_ratio = (malicious_vote_count/total_vote_engines)
-    value = round(malicious_vote_ratio, 2)
     match malicious_vote_ratio:
         case x if 1 < x <= 0.7:
             vote_verdict = 'HARMFUL'
@@ -199,21 +202,23 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
     total_engines= malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
     
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
-        warning.append("Large number of engines couldnt scan")
+        warning.append("Large number of engines failed to scan")
 
     formatted_response={
         "target_url":info1,
-        "warning": warning,
+        "warnings": warning,
         "details":{
             "community_vote":{
                 "vote_verdict": vote_verdict,
                 "malicious_ratio": malicious_vote_ratio
             },
-            "level3":undetected_count+timeout_count+conf_timeout+failure_count+type_unsupported_count,
-            "level2":harmless_count+(harmless_vote_count*0.003),
+            "level3":undetected_count,
+            #The usage of "int" will remove whatever comes after the decimal point
+            "level2":harmless_count+(int(harmless_vote_count*0.003)),
             "level1":malicious_count+suspicious_count+(int(malicious_vote_count*0.003))
         }
     }
+
     return formatted_response
 
 #THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
@@ -230,7 +235,7 @@ def scan_URL(target_URL):
     payload = { "url": target_URL }
     headers = {
         "accept": "application/json",
-        "x-apikey": "key here",
+        "x-apikey": api_key,
         "content-type": "application/x-www-form-urlencoded"
     }
 
@@ -246,22 +251,28 @@ def scan_URL(target_URL):
 
     headers = {
             "accept": "application/json",
-            "x-apikey": "keyhere"
+            "x-apikey": api_key
         }
     
     count = 0
-    while count <= 20:
+    while count <= 15:
         url = f"https://www.virustotal.com/api/v3/analyses/{analysis_id}"
 
         headers = {
             "accept": "application/json",
-            "x-apikey": "keyhere"
+            "x-apikey": api_key
         }
 
         response = requests.get(url, headers=headers)
         response = response.json()
 
-        if response["data"]["attributes"]["status"] == 'queued' or response["data"]["attributes"]["status"] == 'running':
+        status = (
+            response
+            .get("data", {})
+            .get("attributes", {})
+            .get("status")
+        )
+        if status == 'queued' or status == 'running':
             time.sleep(5)
             count += 1
             continue
@@ -273,7 +284,7 @@ def scan_URL(target_URL):
     
 #info1 stores the url which was scanned
 def aggregate_virustotal_results_URLSCAN(rec_response, info1):
-    warning = False
+    warning = []
 
     malicious_count=rec_response["data"]["attributes"]["stats"]["malicious"]
     suspicious_count=rec_response["data"]["attributes"]["stats"]["suspicious"]
@@ -287,7 +298,7 @@ def aggregate_virustotal_results_URLSCAN(rec_response, info1):
 
 
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
-        warning = True
+        warning.append("Large number of engines failed to scan")
     formatted_response={
         "target_url":info1,
         "warnings": warning,
