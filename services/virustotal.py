@@ -113,11 +113,14 @@ async def scan_IP_DOMAIN(target_IP_DOMAIN, scan_type):
 
 #info1 contains the IP address of the target IP address or Domain name
 def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
-    #this calculates the total number of engines whihc virustotal queried
-    total_engines = rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]+rec_response["data"]["attributes"]["last_analysis_stats"]["suspicious"]+rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"]+rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]+rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
-    warning= False
-    #NOTE: HERE WORK ON ADDING A FEATURE TO INFORM OF ABNORMAL RESULTS SUCH AS A LARGE NUMBER OF TIMEOUTS
-    if (rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"] > (0.35 * total_engines)):
+    malicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
+    suspicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["suspicious"]
+    undetected_count=rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"]
+    harmless_count=rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]
+    timeout_count=rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
+    total_engines =malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count
+
+    if (timeout_count > (0.35 * total_engines)):
         warning = True
 
     formatted_response = {
@@ -125,8 +128,8 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
         'country': rec_response["data"]["attributes"]["country"],
         'warning': warning,
         'details':{
-            "level2":rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]+rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"],
-            "level1":rec_response["data"]["attributes"]["last_analysis_stats"]['suspicious'] +rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
+            "level2":harmless_count+undetected_count,
+            "level1":malicious_count+suspicious_count
         }
     }
     
@@ -160,10 +163,20 @@ async def scan_file(file_hash):
 
 
 def aggregate_virustotal_results_FILEHASH(rec_response,info1):
+    warning = []
+    sigma_stats=rec_response["data"]["attributes"]["sigma_analysis_stats"]
+    sigma_stats_critical=sigma_stats["critical"]
+    sigma_stats_high=sigma_stats["high"]
+    sigma_stats_medium=sigma_stats["medium"]
+    sigma_stats_low=sigma_stats["low"]
+    total_sigma_stats=sigma_stats_critical+sigma_stats_high+sigma_stats_medium+sigma_stats_low
+    if sigma_stats_critical > 0 or (sigma_stats_high+sigma_stats_medium)> total_sigma_stats*0.50:
+        warning.append("Critical sigma scan")
+
     harmless_vote_count= rec_response["data"]["attributes"]["total_votes"]["harmless"]
     malicious_vote_count= rec_response["data"]["attributes"]["total_votes"]["malicious"]
-    total_engines = harmless_vote_count+malicious_vote_count
-    malicious_vote_ratio = (malicious_vote_count/total_engines)
+    total_vote_engines = harmless_vote_count+malicious_vote_count
+    malicious_vote_ratio = (malicious_vote_count/total_vote_engines)
     value = round(malicious_vote_ratio, 2)
     match malicious_vote_ratio:
         case x if 1 < x <= 0.7:
@@ -183,18 +196,22 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
     conf_timeout=rec_response["data"]["attributes"]["stats"]["confirmed_timeout"]
     failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
     type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
-
+    total_engines= malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
+    
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
-        warning = True
+        warning.append("Large number of engines couldnt scan")
 
     formatted_response={
         "target_url":info1,
         "warning": warning,
         "details":{
-            "voteverdict": vote_verdict,
+            "community_vote":{
+                "vote_verdict": vote_verdict,
+                "malicious_ratio": malicious_vote_ratio
+            },
             "level3":undetected_count+timeout_count+conf_timeout+failure_count+type_unsupported_count,
-            "level2":harmless_count,
-            "level1":malicious_count+suspicious_count
+            "level2":harmless_count+(harmless_vote_count*0.003),
+            "level1":malicious_count+suspicious_count+(int(malicious_vote_count*0.003))
         }
     }
     return formatted_response
@@ -268,13 +285,14 @@ def aggregate_virustotal_results_URLSCAN(rec_response, info1):
     type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
     total_engines = malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
 
+
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
         warning = True
     formatted_response={
         "target_url":info1,
-        "warning": warning,
+        "warnings": warning,
         "details":{
-            "level3":undetected_count+timeout_count+conf_timeout+failure_count+type_unsupported_count,
+            "level3":undetected_count,
             "level2":harmless_count,
             "level1":malicious_count+suspicious_count
         }
