@@ -1,7 +1,7 @@
 import requests
 import os
 from dotenv import load_dotenv
-import time
+from time import sleep
 
 #NOTE: When a scan is done by virustotal and one of the scanning functions are used, take note that a tuple is returned, the first value in the tuple is going to be a boolean to indicate whether the result was successful
 class PermenantERROR(Exception):
@@ -27,7 +27,6 @@ def response_analysis(url, headers, is_url=False, payload=''):
         else:
             response = requests.post(url, data=payload, headers=headers)
 
-        response = response.json()
         confirmation = response_error_check(json_rec_response=response)
 
         if confirmation[0] is False and confirmation[1] == 'NON-CRITICAL':
@@ -47,11 +46,12 @@ def response_analysis(url, headers, is_url=False, payload=''):
         return (False, last_error)
     
     if okay is True:
-        return (True, response.json())
+        return (True, response)
 
 #This function is to check for any errors in the result recieved by API
-def response_error_check(json_rec_response):
+def response_error_check(rec_response):
     error = None
+    json_rec_response=rec_response.json()
     try:
         if "error" in json_rec_response:
              err_code = json_rec_response["error"]["code"]
@@ -69,13 +69,13 @@ def response_error_check(json_rec_response):
                  case "TransientError":
                     raise NONPermenantERROR
          
-        if json_rec_response.status_code in [500, 502, 503, 504, 507, 505]:
+        if rec_response.status_code in [500, 502, 503, 504, 507, 505]:
             raise NONPermenantERROR
             
     except PermenantERROR:
         return (False, 'CRITICAL', error)
     except NONPermenantERROR:
-        time.sleep(4)
+        sleep(4)
         error="Too many failed attempts"
         return (False, 'NON-CRITICAL', error)
     else:
@@ -123,7 +123,7 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
     total_engines =malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count
 
     if (timeout_count > (0.35 * total_engines)):
-        warning.append("A large number of engines couldnt scan")
+        warning.append("Large number of engines queried by VT's API failed to scan")
 
     formatted_response = {
         'target': info1,
@@ -202,7 +202,7 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
     total_engines= malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
     
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
-        warning.append("Large number of engines failed to scan")
+        warning.append("Large number of engines queried by VT's API failed to scan")
 
     formatted_response={
         "target_url":info1,
@@ -254,7 +254,7 @@ def scan_URL(target_URL):
             "x-apikey": api_key
         }
     
-    count = 0
+    count = 1
     while count <= 15:
         url = f"https://www.virustotal.com/api/v3/analyses/{analysis_id}"
 
@@ -273,7 +273,7 @@ def scan_URL(target_URL):
             .get("status")
         )
         if status == 'queued' or status == 'running':
-            time.sleep(5)
+            sleep(5)
             count += 1
             continue
         else:
@@ -298,7 +298,7 @@ def aggregate_virustotal_results_URLSCAN(rec_response, info1):
 
 
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
-        warning.append("Large number of engines failed to scan")
+        warning.append("Large number of engines queried by VT's API failed to scan")
     formatted_response={
         "target_url":info1,
         "warnings": warning,
