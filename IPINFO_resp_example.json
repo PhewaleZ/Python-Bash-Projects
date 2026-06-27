@@ -1,0 +1,24 @@
+{
+    "ip": "156.155.47.29",
+    "asn": "AS37611",
+    "as_name": "AFRIHOST SP (PTY) LTD",
+    "as_domain": "afrihost.com",
+    "country_code": "ZA",
+    "country": "South Africa",
+    "continent_code": "AF",
+    "continent": {
+        "code": "AF",
+        "name": "Africa"
+    },
+    "country_name": "South Africa",
+    "isEU": false,
+    "country_flag_url": "https://cdn.ipinfo.io/static/images/countries-flags/ZA.svg",
+    "country_flag": {
+        "emoji": "\ud83c\uddff\ud83c\udde6",
+        "unicode": "U+1F1FF U+1F1E6"
+    },
+    "country_currency": {
+        "code": "ZAR",
+        "symbol": "R"
+    }
+}
