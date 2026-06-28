@@ -1,20 +1,30 @@
 from dotenv import load_dotenv
 import ipinfo
 from os import getenv
+import requests
+
+
 
 async def see_own_ip():
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")
-    handler = ipinfo.getHandlerLite(API_key)
+    
+    if API_key is None:
+        return (False, 'IPINFO api key is None')
 
-    details = handler.getDetails()
-    dict_details=details.all
+    url = f"https://api.ipinfo.io/lite/me?token={API_key}"
 
-    ipinfo_results=aggregate_results(details=dict_details)
-    return ipinfo_results
+    try:
+        response = requests.get(url=url, timeout=10)
+    except requests.exceptions.Timeout:
+        return (False, "Couldnt communicate with IPINFO server")
+    
+    #NOTE: Insert error checking function here
+
+    return (True, ipinfo_results)
 
 def aggregate_results(details):
-    own_details={
+    ipinfo_details={
         "IP Adress": details["ip"],
         "asn_code": details["asn_code"],
         "as_name": details["as_name"],
@@ -23,4 +33,21 @@ def aggregate_results(details):
         "continent": details["continent"]["name"]
     }
 
-    return own_details
+    return ipinfo_details
+
+async def check_ip(target_ip):
+    load_dotenv()
+    API_key = getenv("IPINFO_API_KEY")
+    
+    if API_key is None:
+        return (False, 'IPINFO api key is None')
+
+    handler = ipinfo.getHandlerLite(API_key)
+
+    details = handler.getDetails(ip_address=target_ip)
+
+    dict_details=details.all
+
+    ipinfo_results=aggregate_results(details=dict_details)
+
+    return (True, ipinfo_results)
