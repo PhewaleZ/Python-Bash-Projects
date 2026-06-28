@@ -23,11 +23,17 @@ def response_analysis(url, headers, is_url=False, payload=''):
     while count <= 5:
 
         if is_url is False:
-            response = requests.get(url=url, headers=headers)
-        else:
-            response = requests.post(url, data=payload, headers=headers)
-
-        confirmation = response_error_check(json_rec_response=response)
+            try:
+                response = requests.get(url=url, headers=headers, timeout=60)
+            except requests.exceptions.Timeout:
+                return (False, "Couldnt communicate with Virustotal server")
+        else:    
+            try:
+                response = requests.get(url=url, headers=headers, timeout=60)
+            except requests.exceptions.Timeout:
+                return (False, "Couldnt communicate with Virustotal server")
+            
+        confirmation = response_error_check(rec_response=response)
 
         if confirmation[0] is False and confirmation[1] == 'NON-CRITICAL':
             count +=1
