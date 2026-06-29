@@ -1,0 +1,7 @@
+{
+    "status": 403,
+    "error": {
+        "title": "Unknown token",
+        "message": "Please ensure you've entered your token correctly. Refer to https://ipinfo.io/developers for details, or contact us at support@ipinfo.io for help"
+    }
+}
