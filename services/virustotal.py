@@ -75,7 +75,7 @@ def response_error_check(rec_response):
                  case "TransientError":
                     raise NONPermenantERROR
          
-        if rec_response.status_code in [500, 502, 503, 504, 507, 505]:
+        if rec_response.status_code != 200:
             raise NONPermenantERROR
             
     except PermenantERROR:
