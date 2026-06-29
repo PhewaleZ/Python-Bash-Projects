@@ -2,8 +2,26 @@ from dotenv import load_dotenv
 import ipinfo
 from os import getenv
 import requests
+from time import sleep
+import json
 
+class PermenantERROR(Exception):
+    pass
+class NONPermenantERROR(Exception):
+    pass
 
+def error_check(rec_response: requests):
+    json_rec_response= rec_response
+
+    try:
+        if rec_response.status_code in [500, 502, 503, 504, 507, 505, 429]:
+            raise NONPermenantERROR
+
+    except NONPermenantERROR:
+        sleep(4)
+        error="Too many failed attempts"
+        return (False, 'NON-CRITICAL', error)
+    
 
 async def see_own_ip():
     load_dotenv()
@@ -51,3 +69,17 @@ async def check_ip(target_ip):
     ipinfo_results=aggregate_results(details=dict_details)
 
     return (True, ipinfo_results)
+
+def testing_function():
+    load_dotenv()
+    API_key = getenv("IPINFO_API_KEY")
+
+    url= f'https://api.ipinfo.io/lite/me?token=abc'
+
+    response = requests.get(url=url)
+    json_response = response.json()
+
+    with open('errtesting.json', 'w') as f:
+        json.dump(obj=json_response, fp=f, indent=4)
+
+testing_function()
