@@ -273,10 +273,7 @@ def scan_URL(target_URL):
         response = response.json()
 
         status = (
-            response
-            .get("data", {})
-            .get("attributes", {})
-            .get("status")
+            response.get("data", {}).get("attributes", {}).get("status")
         )
         if status == 'queued' or status == 'running':
             sleep(5)
