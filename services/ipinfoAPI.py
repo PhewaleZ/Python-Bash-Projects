@@ -10,20 +10,19 @@ class PermenantERROR(Exception):
 class NONPermenantERROR(Exception):
     pass
 
+#NOTE: error checking for an invalid IP address will be done way earlier into the api
 def error_check(rec_response: requests):
-    json_rec_response= rec_response
+    json_rec_response= rec_response.json()
 
-    try:
-        if rec_response.status_code in [500, 502, 503, 504, 507, 505, 429]:
-            raise NONPermenantERROR
+    err_message= json_rec_response.get("error", {}).get("title", {})
 
-    except NONPermenantERROR:
-        sleep(4)
-        error="Too many failed attempts"
-        return (False, 'NON-CRITICAL', error)
-    
+    if err_message == "Unknown token":
+        return (False, "IPINFO Api key is invalid")
+
+    return (False, err_message)
 
 async def see_own_ip():
+    count = 1
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")
     
@@ -32,11 +31,25 @@ async def see_own_ip():
 
     url = f"https://api.ipinfo.io/lite/me?token={API_key}"
 
-    try:
-        response = requests.get(url=url, timeout=10)
-    except requests.exceptions.Timeout:
-        return (False, "Couldnt communicate with IPINFO server")
-    
+    while count <= 4:
+        try:
+            response = requests.get(url=url, timeout=10)
+        except requests.exceptions.Timeout:
+            return (False, "Couldnt communicate with IPINFO server")
+        
+        if response.status_code != 200:
+            check = error_check(rec_response=response)
+
+            #IF the IPINFO api key is invalid then there is no point in continuing the loop
+            if check[1] == 'IPINFO Api key is invalid':
+                return (False, check[1])
+            
+            count += 1
+            continue
+        else:
+            ...
+            #NOTE: this part here should be the part where the results are aggregated and returned to the user
+
     #NOTE: Insert error checking function here
 
     return (True, ipinfo_results)
@@ -74,9 +87,14 @@ def testing_function():
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")
 
-    url= f'https://api.ipinfo.io/lite/me?token=abc'
+    url= f'https://api.ipinfo.io/lite/102.123.0.1?token=abc'
 
-    response = requests.get(url=url)
+    try:
+        response = requests.get(url=url, timeout=10)
+    except:
+        print("ERROR HAS OCCURED")
+        return 1
+    
     json_response = response.json()
 
     with open('errtesting.json', 'w') as f:
