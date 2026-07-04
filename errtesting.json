@@ -1,7 +1,10 @@
 {
-    "status": 403,
-    "error": {
-        "title": "Unknown token",
-        "message": "Please ensure you've entered your token correctly. Refer to https://ipinfo.io/developers for details, or contact us at support@ipinfo.io for help"
-    }
+    "ip": "102.12.2.1",
+    "asn": "AS37069",
+    "as_name": "The Egyptian Company for Mobile Services (Mobinil)",
+    "as_domain": "mobinil.com",
+    "country_code": "EG",
+    "country": "Egypt",
+    "continent_code": "AF",
+    "continent": "Africa"
 }
