@@ -89,7 +89,7 @@ def response_error_check(rec_response):
     
 
 #The variable scan_type will indicate whether an IP ao domain is being scanned
-async def scan_IP_DOMAIN(target_IP_DOMAIN, scan_type):
+async def scan_IP_DOMAIN_VT(target_IP_DOMAIN, scan_type):
     load_dotenv()
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
@@ -147,7 +147,7 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
 
 
 
-async def scan_file(file_hash):
+async def scan_file_VT(file_hash):
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
@@ -228,7 +228,7 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
     return formatted_response
 
 #THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
-def scan_URL(target_URL):
+def scan_URL_VT(target_URL):
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
