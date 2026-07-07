@@ -127,7 +127,8 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
     harmless_count=rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]
     timeout_count=rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
     total_engines =malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count
-
+    lvl2_ratio = harmless_count/total_engines
+    lvl3_ratio = (malicious_count+suspicious_count)/total_engines
     if (timeout_count > (0.35 * total_engines)):
         warning.append("Large number of engines queried by VT's API failed to scan")
 
@@ -136,9 +137,18 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
         'country': rec_response["data"]["attributes"]["country"],
         'warnings': warning,
         'details':{
-            "level3":undetected_count,
-            "level2":harmless_count,
-            "level1":malicious_count+suspicious_count
+            "level3":{
+                "count":undetected_count,
+                "ratio":undetected_count/total_engines
+            },
+            "level2":{
+                "count":harmless_count,
+                "ratio":lvl2_ratio
+            },
+            "level1":{
+                "count":malicious_count+suspicious_count,
+                "ratio":lvl3_ratio
+            }
         }
     }
     
@@ -206,7 +216,8 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
     failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
     type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
     total_engines= malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
-    
+    lvl2_ratio=round((harmless_count+(int(harmless_vote_count*0.003)))/total_engines)
+    lvl3_ratio=round((malicious_count+suspicious_count+(int(malicious_vote_count*0.003)))/total_engines)
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
         warning.append("Large number of engines queried by VT's API failed to scan")
 
@@ -218,10 +229,19 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
                 "vote_verdict": vote_verdict,
                 "malicious_ratio": malicious_vote_ratio
             },
-            "level3":undetected_count,
+            "level3":{
+                "count":undetected_count,
+                "ratio":round((undetected_count)/total_engines, ndigits=2)
+            },
             #The usage of "int" will remove whatever comes after the decimal point
-            "level2":harmless_count+(int(harmless_vote_count*0.003)),
-            "level1":malicious_count+suspicious_count+(int(malicious_vote_count*0.003))
+            "level2":{
+                "count":harmless_count+(int(harmless_vote_count*0.003)),
+                "ratio":lvl2_ratio
+            },
+            "level1":{
+                "count":malicious_count+suspicious_count+(int(malicious_vote_count*0.003)),
+                "ratio":lvl3_ratio
+            }
         }
     }
 
@@ -298,7 +318,8 @@ def aggregate_virustotal_results_URLSCAN(rec_response, info1):
     failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
     type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
     total_engines = malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
-
+    lvl2_ratio = harmless_count/total_engines
+    lvl3_ratio = (malicious_count+suspicious_count)/total_engines
 
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
         warning.append("Large number of engines queried by VT's API failed to scan")
@@ -306,9 +327,18 @@ def aggregate_virustotal_results_URLSCAN(rec_response, info1):
         "target_url":info1,
         "warnings": warning,
         "details":{
-            "level3":undetected_count,
-            "level2":harmless_count,
-            "level1":malicious_count+suspicious_count
+            "level3":{
+                "count":undetected_count,
+                "ratio":undetected_count/total_engines
+            },
+            "level2":{
+                "count":harmless_count,
+                "ratio":lvl2_ratio
+            },
+            "level1":{
+                "count":malicious_count+suspicious_count,
+                "ratio":lvl3_ratio
+            }
         }
     }
     return formatted_response
