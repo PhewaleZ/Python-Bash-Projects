@@ -13,7 +13,7 @@ class NONPermenantERROR(Exception):
 #By default the payload is an empty string, if the endpoint needs to be the url endpoint then the payload parameter is set right before the function is called
 #The value is_url will determine whether the conduct POST or GET request, in other words whether or not a url is being scanned
 #This function is what returns the python formatted json response
-def response_analysis(url, headers, is_url=False, payload=''):
+def response_analysis(url, headers, payload: dict,is_url=False):
     #NOTE: This part involves the request to virustotal being done over and over again if an error occurs
     #NOTE: confirmation[0] indicates whether or not the received response is okay
     #NOTE: confirmation[1] indicates the type/severity of the error, if critcal then the request is not repeated
@@ -27,9 +27,9 @@ def response_analysis(url, headers, is_url=False, payload=''):
                 response = requests.get(url=url, headers=headers, timeout=60)
             except requests.exceptions.Timeout:
                 return (False, "Couldnt communicate with Virustotal server")
-        else:    
+        else:
             try:
-                response = requests.get(url=url, headers=headers, timeout=60)
+                response = requests.post(url=url, headers=headers, timeout=60,data=payload)
             except requests.exceptions.Timeout:
                 return (False, "Couldnt communicate with Virustotal server")
             
