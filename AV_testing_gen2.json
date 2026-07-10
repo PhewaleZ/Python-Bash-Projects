@@ -8,12 +8,28 @@
         "whois",
         "http_scans"
     ],
-    "whois": "http://whois.domaintools.com/totalsportek24.is",
-    "alexa": "http://www.alexa.com/siteinfo/totalsportek24.is",
-    "indicator": "totalsportek24.is",
+    "whois": "http://whois.domaintools.com/otx.alienvault.com",
+    "alexa": "http://www.alexa.com/siteinfo/otx.alienvault.com",
+    "indicator": "otx.alienvault.com",
     "type": "domain",
     "type_title": "Domain",
-    "validation": [],
+    "validation": [
+        {
+            "source": "akamai",
+            "message": "Akamai rank: #6284",
+            "name": "Akamai Popular Domain"
+        },
+        {
+            "source": "majestic",
+            "message": "Whitelisted domain alienvault.com",
+            "name": "Whitelisted domain"
+        },
+        {
+            "source": "whitelist",
+            "message": "Whitelisted domain alienvault.com",
+            "name": "Whitelisted domain"
+        }
+    ],
     "base_indicator": {},
     "pulse_info": {
         "count": 0,
