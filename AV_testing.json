@@ -1,18 +1,11 @@
 {
     "sections": [
         "general",
-        "geo",
-        "url_list",
-        "passive_dns",
-        "malware",
-        "whois",
-        "http_scans"
+        "analysis"
     ],
-    "whois": "http://whois.domaintools.com/hianime.city",
-    "alexa": "http://www.alexa.com/siteinfo/hianime.city",
-    "indicator": "hianime.city",
-    "type": "domain",
-    "type_title": "Domain",
+    "type": "sha256",
+    "type_title": "FileHash-SHA256",
+    "indicator": "ebf1a62d5f0f20db63fc33bccc5f38b033c29b6e866125b7a9be90fe861d544c",
     "validation": [],
     "base_indicator": {},
     "pulse_info": {
