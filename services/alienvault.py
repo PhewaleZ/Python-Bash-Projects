@@ -43,9 +43,14 @@ def make_request(query_type, detail):
             url=f"https://otx.alienvault.com//api/v1/indicators/IPv6/{detail}/general"
         case "domain":
             url=f"https://otx.alienvault.com/api/v1/indicators/domain/{detail}/general"
+        case "hostname":
+            url=f"https://otx.alienvault.com/api/v1/indicators/hostname/{detail}/general"
+        case "hash":
+            url=f"https://otx.alienvault.com/api/v1/indicators/file/{detail}/general"
         case "light_url":
             url=f"https://otx.alienvault.com/api/v1/indicators/url/{detail}/general"
             #NOTE: work on this url scan thing, This heavy_url scan involves the user having to se the results on the url:https://otx.alienvault.com/submissions/list
+            #NOTE: The api should return the json indicating if it was successfully submitted
         case "heavy_url":
             url=f"https://otx.alienvault.com/api/v1/indicators/url/{detail}/general"
 
@@ -74,6 +79,22 @@ def make_post_request(target: str) -> tuple:
     url=f"https://otx.alienvault.com/api/v1/indicators/url/{target}/general"
 
 
+def scan_file(file_detail: str, is_hash: bool) -> bool:
+    if is_hash is True:
+        result = make_request(query_type="hash", detail=file_detail)
+
+    if is_hash is False:
+        return (False, "This functionality isnt present yet")
+
+    if result[0] is False:
+        return (False, result[1])
+    
+    result_json= result.json()
+
+    AV_result_file = aggregate_IP_Domain_Hostname_hash_results_AV(rec_response=result_json)
+
+    return (True, AV_result_file)
+
 
 def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
     if is_ipv4 is True:
@@ -87,13 +108,13 @@ def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
     
     result_json= result.json()
 
-    AV_result_IP = aggregate_IP_Domain_results_AV(rec_response=result_json)
+    AV_result_IP = aggregate_IP_Domain_Hostname_hash_results_AV(rec_response=result_json)
 
     return (True, AV_result_IP)
 
 
 
-def scan_domain_AV(target_domain: str) -> tuple:
+def scan_domain_hostname_AV(target_domain: str) -> tuple:
     result = make_request(query_type="domain", detail=target_domain)
 
     if result[0] is False:
@@ -101,11 +122,11 @@ def scan_domain_AV(target_domain: str) -> tuple:
     
     result_json= result.json()
 
-    AV_result_Domain = aggregate_IP_Domain_results_AV(rec_response=result_json)
+    AV_result_Domain = aggregate_IP_Domain_Hostname_hash_results_AV(rec_response=result_json)
 
     return (True, AV_result_Domain)
 
-def aggregate_IP_Domain_results_AV(rec_response: dict) -> dict:
+def aggregate_IP_Domain_Hostname_hash_results_AV(rec_response: dict) -> dict:
     pulse_count = rec_response["pulse_info"]["count"]
 
     #This part will be done if the number of pulss are greater than 0
@@ -132,7 +153,7 @@ def aggregate_IP_Domain_results_AV(rec_response: dict) -> dict:
             "pulse_count":pulse_count,
             "pulse_details":{
                 "pulses":details_of_pulses,
-                "concern": concern,
+                "concern": concern
             }
         }
         
@@ -155,17 +176,33 @@ def aggregate_IP_Domain_results_AV(rec_response: dict) -> dict:
 
 
 def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
-    ...
+    if is_lightscan is True:
+        result = make_request(query_type="light_url",detail=target_url)
+    
+    if is_lightscan is False:
+        result = make_request(query_type="heavy_url", detail=target_url)
+
+    if result[0] is False:
+        return (False, result[1])
+    
+    result_json= result.json()
+
+    if result_json.get("detail", {}) == "endpoint not found":
+        return (False, "AV API couldnt find the endpoint")
+    
+    #NOTE: continue here by adding the function to aggregate the result, and verify the json returned by the API when the url is scanned in a sandbox mode
+
+    
 
 def testing_function():
     load_dotenv()
     API_key= getenv("AV_API_KEY")
     header = {"X-OTX-API-KEY": API_key}
-    target="totalsportek24.is"
+    target="https://wvdme.com/afu.php?zoneid=11215377&var=11215377&rid=VNWXKjLGtzaM7cA1lFMN6A%3D%3D&rhd=true&ab2r=0&sf=1&os=windows&os_version=19.0.0&is_mobile=false&browser_version=150.0.7871.114"
     data={
         "url": target
 }
-    url=f"https://otx.alienvault.com/api/v1/indicators/domain/{target}/general"
+    url=f"https://otx.alienvault.com/api/v1/indicators/url/{target}/general"
     try:
         response = requests.get(url=url,
                             headers=header,
@@ -173,13 +210,12 @@ def testing_function():
     except requests.exceptions.Timeout:
         print("TIMEOUT")
         return 1
-
-    with open("AV_testing_gen2.json", "w") as f:
+    except requests.exceptions.JSONDecodeError:
+        print("couldnt decode json")
+        return 1
+    with open("errtesting.json", "w") as f:
         json.dump(response.json(), fp=f, indent=4)
 
     print("DONE")
-
-def testing_ret_id(id):
-    ...
 
 testing_function()

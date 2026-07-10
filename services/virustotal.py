@@ -87,7 +87,7 @@ def response_error_check(rec_response):
     else:
         return (True,'',error)
     
-
+#NOTE: The scanning ip address VT endpoint accepts both ipv6 and ipv4 addresses
 #The variable scan_type will indicate whether an IP ao domain is being scanned
 async def scan_IP_DOMAIN_VT(target_IP_DOMAIN, scan_type):
     load_dotenv()
