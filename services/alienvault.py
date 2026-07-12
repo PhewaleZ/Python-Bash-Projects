@@ -236,7 +236,7 @@ def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
         result_json = result[1]
 
         if result_json.get("status", {}) == "okay":
-            link = {result_link = "https://otx.alienvault.com/submissions/list"}
+            link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
         else:
             return (False, "The url couldnt be submitted")
