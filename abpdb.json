@@ -1,0 +1,18 @@
+{
+    "data": {
+        "ipAddress": "197.249.236.235",
+        "isPublic": true,
+        "ipVersion": 4,
+        "isWhitelisted": false,
+        "abuseConfidenceScore": 0,
+        "countryCode": "MZ",
+        "usageType": "Fixed Line ISP",
+        "isp": "TVCABO Maputo",
+        "domain": "tvcabo.mz",
+        "hostnames": [],
+        "isTor": false,
+        "totalReports": 0,
+        "numDistinctUsers": 0,
+        "lastReportedAt": null
+    }
+}
