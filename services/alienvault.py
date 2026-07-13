@@ -28,7 +28,6 @@ def error_check(rec_response: requests):
 
 #The variable "detail" just holds any relevant information to make the request to the API server
 def make_request(query_type, detail):
-    count = 1
     load_dotenv()
     API_key= getenv("AV_API_KEY")
     if API_key is None:
@@ -49,19 +48,19 @@ def make_request(query_type, detail):
             url=f"https://otx.alienvault.com/api/v1/indicators/file/{detail}/general"
         case "light_url":
             url=f"https://otx.alienvault.com/api/v1/indicators/url/{detail}/general"
-            #NOTE: work on this url scan thing, This heavy_url scan involves the user having to se the results on the url:https://otx.alienvault.com/submissions/list
-            #NOTE: The api should return the json indicating if it was successfully submitted
-
+    
+    count = 1
     while count <= 4:
         try:
             response = requests.get(url=url,
                                 headers=header,
                                 timeout=10)
+            #If the recieved json from the AV api is a success then a tuple with the first index as true is returned and the loop isnt continued
+            if response.status_code == 200:
+                return (True, "OK")
+            
             confirmation = error_check(rec_response=response)
 
-            if confirmation[0] is True:
-                return (True, response)
-            
             if confirmation[0] is False:
                 last_err = confirmation[1]
                 count += 1
@@ -101,7 +100,7 @@ def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
     if result[0] is False:
         return (False, result[1])
     
-    result_json= result[1].json()
+    result_json = result[1].json()
 
     AV_result_IP = aggregate_AV_results(rec_response=result_json)
 
@@ -127,7 +126,8 @@ def aggregate_AV_results(rec_response: dict) -> dict:
         found = True
     else:
         found = False
-    #This part will be done if the number of pulss are greater than 0
+    target_name = rec_response["indicator"]
+    #This part will be done if the number of pulses are greater than 0
     if pulse_count >= 1:
         details_of_pulses = []
         pulses=rec_response["pulse_info"]["pulses"]
@@ -149,6 +149,7 @@ def aggregate_AV_results(rec_response: dict) -> dict:
 
         #The found key is used to indicate if the AV API actually had an entry for the result, its not a guarantee just an extra piece of info
         formatted_response ={
+            "target":target_name,
             "pulse_count":pulse_count,
             "found":found,
             "pulse_details":{
@@ -164,7 +165,8 @@ def aggregate_AV_results(rec_response: dict) -> dict:
     
     #If the number of pulses are 0 then the following dictionary is returned instead
     formatted_response = {
-        "pulse_count": 0,
+        "target":target_name,
+        "pulse_count":0,
         "found":found,
         "pulse_details":{
             "pulses":None,
@@ -226,7 +228,7 @@ def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
         
         return (True, AV_result_url)
 
-
+#This is done if the scan being conducted on the URL is complex
     if is_lightscan is False:
         result = make_post_request(query_type="url", detail=target_url)
 
@@ -234,16 +236,12 @@ def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
             return (False, result[1])
     
         result_json = result[1]
-
+        #If the field of status is "okay" then it means that it as ben successfully submitted to the API server and the link to it is returned
         if result_json.get("status", {}) == "okay":
             link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
         else:
             return (False, "The url couldnt be submitted")
-
-    
-    #NOTE: continue here by adding the function to aggregate the result, and verify the json returned by the API when the url is scanned in a sandbox mode
-
     
 
 def testing_function():
