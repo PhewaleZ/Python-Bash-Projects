@@ -13,7 +13,7 @@ class NONPermenantERROR(Exception):
 #By default the payload is an empty string, if the endpoint needs to be the url endpoint then the payload parameter is set right before the function is called
 #The value is_url will determine whether the conduct POST or GET request, in other words whether or not a url is being scanned
 #This function is what returns the python formatted json response
-def response_analysis(url, headers, payload: dict,is_url=False):
+def response_analysis(url: str, headers: dict, payload: dict,is_url=False) -> tuple:
     #NOTE: This part involves the request to virustotal being done over and over again if an error occurs
     #NOTE: confirmation[0] indicates whether or not the received response is okay
     #NOTE: confirmation[1] indicates the type/severity of the error, if critcal then the request is not repeated
@@ -55,7 +55,7 @@ def response_analysis(url, headers, payload: dict,is_url=False):
         return (True, response)
 
 #This function is to check for any errors in the result recieved by API
-def response_error_check(rec_response):
+def response_error_check(rec_response) -> tuple:
     error = None
     json_rec_response=rec_response.json()
     try:
@@ -89,7 +89,7 @@ def response_error_check(rec_response):
     
 #NOTE: The scanning ip address VT endpoint accepts both ipv6 and ipv4 addresses
 #The variable scan_type will indicate whether an IP ao domain is being scanned
-async def scan_IP_DOMAIN_VT(target_IP_DOMAIN, scan_type):
+async def scan_IP_DOMAIN_VT(target_IP_DOMAIN: str, scan_type: str) -> tuple:
     load_dotenv()
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
@@ -111,14 +111,14 @@ async def scan_IP_DOMAIN_VT(target_IP_DOMAIN, scan_type):
     #The returned response in the tuple "check", if succssful, is a python formatted json
     check = response_analysis(url=url, headers=headers)
     if check[0] is True:
-        virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=check[1], info1=target_IP_DOMAIN)
+        virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=check[1], target_name=target_IP_DOMAIN)
         return (True, virus_total_res)
     
     if check[1] is False:
         return (False, check[1])
 
 #info1 contains the IP address of the target IP address or Domain name
-def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
+def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: str) -> dict:
     warning = []
 
     malicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
@@ -133,7 +133,7 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
         warning.append("Large number of engines queried by VT's API failed to scan")
 
     formatted_response = {
-        'target': info1,
+        'target': target_name,
         'country': rec_response["data"]["attributes"]["country"],
         'warnings': warning,
         'details':{
@@ -157,7 +157,7 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, info1):
 
 
 
-async def scan_file_VT(file_hash):
+async def scan_file_VT(file_hash, target_file_name):
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
@@ -174,14 +174,14 @@ async def scan_file_VT(file_hash):
 
     check = response_analysis(url=url, headers=headers)
     if check[0] is True:
-        virus_total_res = aggregate_virustotal_results_FILEHASH(rec_response=check[1])
+        virus_total_res = aggregate_virustotal_results_FILEHASH(rec_response=check[1], target_name=target_file_name)
         return (True, virus_total_res)
     
     if check[1] is False:
         return (False, check[1])
 
 
-def aggregate_virustotal_results_FILEHASH(rec_response,info1):
+def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict:
     warning = []
 
     sigma_stats=rec_response["data"]["attributes"]["sigma_analysis_stats"]
@@ -222,7 +222,7 @@ def aggregate_virustotal_results_FILEHASH(rec_response,info1):
         warning.append("Large number of engines queried by VT's API failed to scan")
 
     formatted_response={
-        "target_url":info1,
+        "target_file":target_name,
         "warnings": warning,
         "details":{
             "community_vote":{
@@ -300,13 +300,13 @@ def scan_URL_VT(target_URL):
             count += 1
             continue
         else:
-            virus_total_res = aggregate_virustotal_results_URLSCAN(rec_resonse=response, info1=target_URL)
+            virus_total_res = aggregate_virustotal_results_URLSCAN(rec_resonse=response, target_name=target_URL)
             return (True, virus_total_res)
     
     return (False, f'The api took too long do return a finished response, LAST KNOWN STATUS IS {response["data"]["attributes"]["status"]}')
     
 #info1 stores the url which was scanned
-def aggregate_virustotal_results_URLSCAN(rec_response, info1):
+def aggregate_virustotal_results_URLSCAN(rec_response, target_name: str) -> dict:
     warning = []
 
     malicious_count=rec_response["data"]["attributes"]["stats"]["malicious"]
@@ -324,7 +324,7 @@ def aggregate_virustotal_results_URLSCAN(rec_response, info1):
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
         warning.append("Large number of engines queried by VT's API failed to scan")
     formatted_response={
-        "target_url":info1,
+        "target_url":target_name,
         "warnings": warning,
         "details":{
             "level3":{
