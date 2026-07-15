@@ -11,10 +11,8 @@ def error_check(rec_response: requests):
     match rec_response.status_code:
         case 400:
             return (False, "The request sent to Alienvault API server is invalid")
-        case 401:
+        case 401|403:
             return (False, "Authentication failed with the Alienvault API server")
-        case 403:
-            return (False, "Alienvault API didnt grant permission for the made request")
         case 404:
             return (False, "The resource doesnt exist in Alienvault's API")
         case 429:
