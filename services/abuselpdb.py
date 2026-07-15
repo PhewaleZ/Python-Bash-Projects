@@ -3,12 +3,15 @@ import json
 from time import sleep
 from os import getenv
 from dotenv import load_dotenv
+from requests import Response
 
-
+#The report_age parameter is used to determine how old the reports retrieved by abuselpdb API can, at max, be
 def scan_ip_APDB(target_IP: str, report_age=90) -> tuple:
     load_dotenv()
     API_key=getenv("ABUSELPDB_API_KEY")
-    
+    if API_key is None:
+        return (False, "The abuselpdb API key is None")
+
     url = 'https://api.abuseipdb.com/api/v2/check'
 
     querystring = {
@@ -21,20 +24,64 @@ def scan_ip_APDB(target_IP: str, report_age=90) -> tuple:
     'Key': API_key
         }
 
-
     count = 1
+    #The variable flag indicates if the response status code is 200
+    flag1 = False
     while count <= 4:
         try:
             response = requests.request(method='GET', url=url, headers=headers, params=querystring, timeout=20)
+
+            if response.status_code == 200:
+                flag1 = True
+                break
+
+            if response.status_code != 200:
+                count +=1
+                last_err = error_check(rec_response=response)
+                last_err_dict = last_err[1]
+                #If the first index, limit_reached is False then it means that the 429 status code was returned and continuing to send https requests is pointless
+                if last_err[0] is True:
+                    break
+                else:
+                    continue
+
         except requests.exceptions.Timeout:
-            return (False, "Coudln't communicate with abpdb API server")
-        abuselpdb_response = aggregate_APDB_results(rec_response=response)
-
-        return (True, abuselpdb_response)
-
-
-def error_check(rec_response) -> tuple:
+            last_err_dict = {
+        "status_code":504,
+        "error_detail":"The request timed out"  
+            }
+            count += 1
+            continue
     
+    if flag1 is True:    
+        abuselpdb_response = aggregate_APDB_results(rec_response=response)
+        return (True, abuselpdb_response)
+    
+    if flag1 is False:
+        return (False, last_err_dict)
+
+#The abuselpdb api documentation states that a json with a consistent format will at the minimum, be returned
+#A tuple is returned, the first index is the limit_reached flag
+def error_check(rec_response: Response) -> tuple:
+    limit_reached = False
+    rec_response= rec_response.json()
+
+    err_code = rec_response.get("errors", [{}])[0].get("status")
+
+    #Per the abuselpdb api documentation a status code of 429 is returned when the daily limit has been reached
+    if err_code == 429:
+        err_detail = "The daily limit has been reached"
+        limit_reached = True
+    else:
+        err_detail = rec_response.get("errors", [{}])[0].get("detail")
+
+    err_response={
+        "status_code":err_code,
+        "error_detail":err_detail  
+    }
+
+    return (limit_reached,err_response)
+
 
 def aggregate_APDB_results(rec_response) -> dict:
     rec_response = rec_response.json()
