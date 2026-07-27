@@ -27,12 +27,12 @@ def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bo
             response.raise_for_status()
 
         except requests.exceptions.Timeout:
-            return (False, "Couldn't communicate with the VirusTotal server.")
+            return (False, "Couldn't communicate with the VirusTotal server, TIMEOUT occured.")
 
         except requests.exceptions.ConnectionError:
-            return (False, "Could not connect to the server.")
+            return (False, "Could not connect to the VT API server.")
 
-        #In this match case block, the first 2 cases are errors that if occur, there is no point in sending another request
+        #NOTE:In this match case block, the first 3 cases are errors that if occur, there is no point in sending another http request
         except requests.exceptions.HTTPError as e:
             if e.response is None:
                 return (False, str(e))

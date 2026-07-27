@@ -4,30 +4,13 @@ from dotenv import load_dotenv
 from os import getenv
 from time import sleep
 
-def error_check(rec_response: requests):
-    if rec_response.status_code == 200:
-        return (True, "OK")
-    
-    match rec_response.status_code:
-        case 400:
-            return (False, "The request sent to Alienvault API server is invalid")
-        case 401|403:
-            return (False, "Authentication failed with the Alienvault API server")
-        case 404:
-            return (False, "The resource doesnt exist in Alienvault's API")
-        case 429:
-            sleep(15)
-            return (False, "Alienvault throttled the request")
-        case 500:
-            return (False, "An error has occured on Alienvault's side")
-        case _:
-            return (False, "An unexpected error has occured with the Alienvault request")
-
-
 #The variable "detail" just holds any relevant information to make the request to the API server
-def make_request(query_type, detail):
+def make_get_request(query_type, detail) -> tuple[bool, str|requests.Response]:
+    url = ''
+    last_error = ''
     load_dotenv()
     API_key= getenv("AV_API_KEY")
+
     if API_key is None:
         return (False, "The alienvault API key is None")
     
@@ -47,41 +30,51 @@ def make_request(query_type, detail):
         case "light_url":
             url=f"https://otx.alienvault.com/api/v1/indicators/url/{detail}/general"
     
-    count = 1
-    while count <= 4:
+    for _ in range(4):
         try:
-            response = requests.get(url=url,
-                                headers=header,
-                                timeout=10)
-            #If the recieved json from the AV api is a success then a tuple with the first index as true is returned and the loop isnt continued
-            if response.status_code == 200:
-                return (True, "OK")
-            
-            confirmation = error_check(rec_response=response)
+            response = requests.get(url=url, headers=header, timeout=10)
+            response.raise_for_status()
 
-            if confirmation[0] is False:
-                last_err = confirmation[1]
-                count += 1
-                continue
         except requests.exceptions.Timeout:
-            last_err = "Couldnt communicate with Alienvault's API server"
-            count += 1
+            return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
+        
+        except requests.exceptions.ConnectionError:
+            return (False, "Could not connect to the Alienvault's API server.")
+    
+        except requests.exceptions.HTTPError as e:
+            if e.response is None:
+                return (False, str(e))
+            match e.response.status_code:
+                case 403:
+                    return (False, "Access denied by Alienvault's API server")
+                case 429:
+                    return (False, "The rate limit for the Alienvault's API server has been reached")
+                case 400 | 401 | 404:
+                    return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
+                case _:
+                    last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                    continue
+    
+        except requests.exceptions.RequestException as e:
+            last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
             continue
 
-    return (False, last_err)
+        else:
+            return(True, response)
+        
+    return (False, last_error)
 
 
-def scan_file(file_detail: str, is_hash: bool) -> bool:
+def scan_file(file_detail: str, is_hash: bool) -> tuple[bool, str| dict]:
     if is_hash is True:
-        result = make_request(query_type="hash", detail=file_detail)
-
-    if is_hash is False:
+        result = make_get_request(query_type="hash", detail=file_detail)
+    else:
         return (False, "This functionality isnt present yet")
 
     if result[0] is False:
-        return (False, result[1])
-    
-    result_json= result[1].json()
+        return (False, result[1]) #type: ignore
+    else:
+        result_json= result[1].json() #type: ignore
 
     AV_result_file = aggregate_AV_results(rec_response=result_json)
 
@@ -90,15 +83,14 @@ def scan_file(file_detail: str, is_hash: bool) -> bool:
 
 def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
     if is_ipv4 is True:
-        result = make_request(query_type="ipv4",detail=target_IP)
-    
-    if is_ipv4 is False:
-        result = make_request(query_type="ipv6", detail=target_IP)
+        result = make_get_request(query_type="ipv4",detail=target_IP)
+    else:
+        result = make_get_request(query_type="ipv6", detail=target_IP)
 
     if result[0] is False:
         return (False, result[1])
-    
-    result_json = result[1].json()
+    else:
+        result_json = result[1].json() #type: ignore
 
     AV_result_IP = aggregate_AV_results(rec_response=result_json)
 
@@ -106,19 +98,20 @@ def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
 
 
 
-def scan_domain_hostname_AV(target_domain: str) -> tuple:
-    result = make_request(query_type="domain", detail=target_domain)
+def scan_domain_hostname_AV(target_domain: str) -> tuple[bool, str|dict]:
+    result = make_get_request(query_type="domain", detail=target_domain)
 
     if result[0] is False:
-        return (False, result[1])
-    
-    result_json= result[1].json()
+        return (False, result[1]) #type: ignore
+    else:
+        result_json= result[1].json()#type: ignore
 
     AV_result_Domain = aggregate_AV_results(rec_response=result_json)
 
     return (True, AV_result_Domain)
 
 def aggregate_AV_results(rec_response: dict) -> dict:
+    concern = ''
     pulse_count = rec_response["pulse_info"]["count"]
     if rec_response["base_indicator"] is not None:
         found = True
@@ -174,50 +167,63 @@ def aggregate_AV_results(rec_response: dict) -> dict:
 
     return (formatted_response)
 
-def make_post_request(query_type: str, detail: str) -> tuple:
-    if query_type == "url":
-        url=f"https://otx.alienvault.com/api/v1/indicators/submit_url"
-
+def make_post_request(query_type: str, detail: str) -> tuple[bool, str|requests.Response]:
+    last_error = ''
     load_dotenv()
     API_key= getenv("AV_API_KEY")
+    if API_key is None:
+        return (False, "Alienvault API key is None")
+    
+    url=f"https://otx.alienvault.com/api/v1/indicators/submit_url"
     header = {"X-OTX-API-KEY": API_key}
     data={
         "url": detail
 }
 
-    while count <= 4:
-        try:
-            response = requests.post(url=url,
-                                headers=header,
-                                data=data,
-                                timeout=10)
-            
-            confirmation = error_check(rec_response=response)
+    for _ in range(4):
+            try:
+                response = requests.post(url=url, headers=header, data=data,timeout=10)
+                response.raise_for_status()
 
-            if confirmation[0] is True:
-                return (True, response)
+            except requests.exceptions.Timeout:
+                return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
             
-            if confirmation[0] is False:
-                last_err = confirmation[1]
-                count += 1
+            except requests.exceptions.ConnectionError:
+                return (False, "Could not connect to the Alienvault's API server.")
+        
+            except requests.exceptions.HTTPError as e:
+                if e.response is None:
+                    return (False, str(e))
+                match e.response.status_code:
+                    case 403:
+                        return (False, "Access denied by Alienvault's API server")
+                    case 429:
+                        return (False, "The rate limit for the Alienvault's API server has been reached")
+                    case 400 | 401 | 404:
+                        return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
+                    case _:
+                        last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                        continue
+        
+            except requests.exceptions.RequestException as e:
+                last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
                 continue
-        except requests.exceptions.Timeout:
-            last_err = "Couldnt communicate with Alienvault's API server"
-            count += 1
-            continue
     
-    return (False, last_err)
+            else:
+                return(True, response)
+    
+    return (False, last_error)
 
 
 def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
 
     if is_lightscan is True:
-        result = make_request(query_type="light_url",detail=target_url)
+        result = make_get_request(query_type="light_url",detail=target_url)
 
         if result[0] is False:
             return (False, result[1])
-    
-        result_json = result.json()
+        else:
+            result_json = result[1].json() #type: ignore
 
         if result_json.get("detail", {}) == "endpoint not found":
             return (False, "AV API couldnt find the endpoint")
@@ -226,16 +232,17 @@ def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
         
         return (True, AV_result_url)
 
-#This is done if the scan being conducted on the URL is complex
-    if is_lightscan is False:
+
+        #This is done if the scan being conducted on the URL is complex
+    else:
         result = make_post_request(query_type="url", detail=target_url)
 
         if result[0] is False:
             return (False, result[1])
-    
-        result_json = result[1]
+        else:
+            result_json = result[1]
         #If the field of status is "okay" then it means that it as ben successfully submitted to the API server and the link to it is returned
-        if result_json.get("status", {}) == "okay":
+        if result_json.get("status", {}) == "okay": #type: ignore
             link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
         else:
@@ -253,7 +260,7 @@ def testing_function():
     url=f"https://otx.alienvault.com/api/v1/indicators/submit_url"
     try:
         response = requests.get(url=url,
-                            headers=header,
+                            headers=header,#type: ignore
                             data=data,
                             timeout=10)
         print(f"The status code is: {response.status_code}")
