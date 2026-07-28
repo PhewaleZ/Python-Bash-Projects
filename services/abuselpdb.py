@@ -7,8 +7,10 @@ from requests import Response
 
 #The report_age parameter is used to determine how old the reports retrieved by abuselpdb API can, at max, be
 def scan_ip_APDB(target_IP: str, report_age=90) -> tuple:
+    last_error = ''
     load_dotenv()
     API_key=getenv("ABUSELPDB_API_KEY")
+
     if API_key is None:
         return (False, "The abuselpdb API key is None")
 
@@ -24,66 +26,43 @@ def scan_ip_APDB(target_IP: str, report_age=90) -> tuple:
     'Key': API_key
         }
 
-    count = 1
-    #The variable flag indicates if the response status code is 200
-    flag1 = False
-    while count <= 4:
-        try:
-            response = requests.request(method='GET', url=url, headers=headers, params=querystring, timeout=20)
-
-            if response.status_code == 200:
-                flag1 = True
-                break
-
-            if response.status_code != 200:
-                count +=1
-                last_err = error_check(rec_response=response)
-                last_err_dict = last_err[1]
-                #If the first index, limit_reached is False then it means that the 429 status code was returned and continuing to send https requests is pointless
-                if last_err[0] is True:
-                    break
-                else:
+    for _ in range(4):
+                try:
+                    response = requests.post(url=url, headers=headers,timeout=10, params=querystring)
+                    response.raise_for_status()
+    
+                except requests.exceptions.Timeout:
+                    return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
+                
+                except requests.exceptions.ConnectionError:
+                    return (False, "Could not connect to the Alienvault's API server.")
+            
+                except requests.exceptions.HTTPError as e:
+                    if e.response is None:
+                        return (False, str(e))
+                    match e.response.status_code:
+                        case 403:
+                            return (False, "Access denied by Alienvault's API server")
+                        case 429:
+                            return (False, "The rate limit for the Alienvault's API server has been reached")
+                        case 400 | 401 | 404:
+                            return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
+                        case _:
+                            last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                            continue
+            
+                except requests.exceptions.RequestException as e:
+                    last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
                     continue
-
-        except requests.exceptions.Timeout:
-            last_err_dict = {
-        "status_code":504,
-        "error_detail":"The request timed out"  
-            }
-            count += 1
-            continue
-    
-    if flag1 is True:    
-        abuselpdb_response = aggregate_APDB_results(rec_response=response)
-        return (True, abuselpdb_response)
-    
-    if flag1 is False:
-        return (False, last_err_dict)
-
-#The abuselpdb api documentation states that a json with a consistent format will at the minimum, be returned
-#A tuple is returned, the first index is the limit_reached flag
-def error_check(rec_response: Response) -> tuple:
-    limit_reached = False
-    rec_response= rec_response.json()
-
-    err_code = rec_response.get("errors", [{}])[0].get("status")
-
-    #Per the abuselpdb api documentation a status code of 429 is returned when the daily limit has been reached
-    if err_code == 429:
-        err_detail = "The daily limit has been reached"
-        limit_reached = True
-    else:
-        err_detail = rec_response.get("errors", [{}])[0].get("detail")
-
-    err_response={
-        "status_code":err_code,
-        "error_detail":err_detail  
-    }
-
-    return (limit_reached,err_response)
+        
+                else:
+                    return(True, response)
+                
+    return (False, last_error)
 
 
 def aggregate_APDB_results(rec_response) -> dict:
+    concern = ''
     rec_response = rec_response.json()
     data = rec_response["data"]
     abpdb_score = data["abuseConfidenceScore"]
