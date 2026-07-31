@@ -1,3 +1,5 @@
+from sqlalchemy.orm import Session
+from ..database.db_functions import add_user
 
 def create_user():
     while True:
@@ -18,6 +20,4 @@ def create_user():
         else:
             break
 
-
-def write_to_db():
-    ...
+    add_user(db=)
