@@ -1,5 +1,4 @@
 from sqlalchemy import String
-from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.dialects.postgresql import UUID
@@ -33,23 +32,5 @@ class User(Base):
 
     is_admin: Mapped[bool] = mapped_column(
         default=False,
-        nullable=False
-    )
-
-class Scan(Base):
-    __tablename__ = "scans"
-
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey('User.user_id'),
-        nullable=False
-    )
-
-    scan: Mapped[dict] = mapped_column(
-        JSONB
-    )
-
-    #The reference isnt meant to be unique
-    reference: Mapped[str] = mapped_column(
-        String(24),
         nullable=False
     )
