@@ -1,4 +1,4 @@
-from db_schema import User, Scan
+from db_schema import User
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
