@@ -1,13 +1,10 @@
-from sqlalchemy.orm import Session
-from ..database.db_functions import add_user
-from ..database.db_schema import User
+from database.db_schema import User,Base
 import bcrypt
-from ..database.database import SessionLocal, engine
-from ..database import db_schema
-from ..database.db_schema import Base
+from database.database import SessionLocal, engine
 
-
-def create_user():
+def database_check():
+    
+def initialize_database():
     while True:
         proposed_username= input("What is the name of the first user \nNote that spaces will be stripped from the password:\n ").strip()
 
@@ -46,5 +43,8 @@ def create_user():
 
         db.add(user)
         db.commit()
+
     finally:
         db.close()
+
+initialize_database()
