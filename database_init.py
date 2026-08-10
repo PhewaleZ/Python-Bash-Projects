@@ -2,8 +2,27 @@ from database.db_schema import User,Base
 import bcrypt
 from database.database import SessionLocal, engine
 
-def database_check():
-    
+def main():
+    while True:
+        conf = input("Would you like to create the relevant tables, \nIf the tables exist then nothing is done and the existing table wont be affected, [n/y]?").lower()
+
+        match conf:
+            case "y":
+                initialize_database()
+                break
+            case "n":
+                print("Aborting")
+                break
+            case "yes":
+                initialize_database()
+                break
+            case "no":
+                print("Aborting")
+                break
+            case _:
+                print("select a valid option!")
+                continue
+        
 def initialize_database():
     while True:
         proposed_username= input("What is the name of the first user \nNote that spaces will be stripped from the password:\n ").strip()
@@ -47,4 +66,5 @@ def initialize_database():
     finally:
         db.close()
 
-initialize_database()
+if "__main__" == __name__:
+    main()
