@@ -1,7 +1,7 @@
 from db_schema import User
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
+from sqlalchemy import delete
 
 #In this function a database connection is established by adding Session as a type hint
 #The add method will add the user object into the database
@@ -12,12 +12,25 @@ def add_user(db: Session, user_obj: User):
     db.commit()
     db.refresh(user_obj)
 
-def return_key(db: Session, user_name: str):
-    query = db.query(User.user_key).where(User.username==user_name)
+#This will return the stored hash of that users password
+def return_key(db: Session, username: str):
+    query = db.query(User.user_key).where(User.username==us)
     key = db.execute(query).mappings()
     key = key.first()
 
     return key
 
-def database_check(db: Session) -> str|None:
-    ...
+#This returns the field in the users "is_admin" column
+def authorize_user(db: Session, user_name):
+    query = db.query(User.is_admin).where(User.username==user_name)
+    key = db.execute(query).mappings()
+    key = key.first()
+
+    return key
+
+
+def delete_user(db: Session, target_username):
+    query = delete(User).where(User.username==target_username)
+    db.execute(query)
+    db.commit()
+
