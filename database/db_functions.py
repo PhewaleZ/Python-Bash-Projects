@@ -14,7 +14,7 @@ def add_user(db: Session, user_obj: User):
 
 #This will return the stored hash of that users password
 def return_key(db: Session, username: str):
-    query = db.query(User.user_key).where(User.username==us)
+    query = db.query(User.user_key).where(User.username==username)
     key = db.execute(query).mappings()
     key = key.first()
 
