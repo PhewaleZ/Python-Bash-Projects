@@ -21,12 +21,12 @@ def return_key(db: Session, username: str):
     return key
 
 #This returns the field in the users "is_admin" column
-def authorize_user(db: Session, user_name):
-    query = db.query(User.is_admin).where(User.username==user_name)
-    key = db.execute(query).mappings()
-    key = key.first()
+def authorize_user(db: Session, username):
+    query = db.query(User.is_admin).where(User.username==username)
+    result = db.execute(query).mappings()
+    result = result.first()
 
-    return key
+    return result
 
 
 def delete_user(db: Session, target_username):

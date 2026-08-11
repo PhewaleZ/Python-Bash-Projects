@@ -2,9 +2,11 @@ from dotenv import load_dotenv
 from os import getenv
 import requests
 import json
+from ipaddress import IPv4Address, IPv6Address
+
 
 #NOTE: error checking for an invalid IP address will be done way earlier into the api
-def make_request(API_key: str, is_own_ip: bool, target_ip='0.0.0.0') -> tuple[bool, str|dict]:
+def make_request(API_key: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Address) -> tuple[bool, str|dict]:
     last_error = ''
     url = ''
     if is_own_ip is False:
@@ -55,8 +57,9 @@ def see_own_ip() -> tuple[bool, str|dict]:
     
     if API_key is None:
         return (False, 'IPINFO api key is None')
-    
-    response = make_request(API_key=API_key, is_own_ip=True)
+
+    #Note that the parameter "target_ip" is set to 0 as it isnt relevant for scaning your own IP address
+    response = make_request(API_key=API_key, is_own_ip=True, target_ip=IPv4Address(0))
 
     if response[0] is True:
         return (True, response[1])
@@ -77,7 +80,7 @@ def aggregate_results(details) -> dict:
 
     return ipinfo_details
 
-def check_ip(target_ip: str) -> tuple[bool, str| dict ]:
+def check_ip(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")
     
