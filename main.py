@@ -15,9 +15,14 @@ class IPRequest(BaseModel):
     @field_validator("scan_type")
     @classmethod
     def check(cls, value):
+        print("the scan type is being checked")
         options = ["recon_ip_scan", "own_ip"]
         if value not in options:
-            raise ValueError("The option selected is not avaliable at present or doesn't exist")
+            raise HTTPException(
+                status_code=422,
+                detail="The selected scan type doesnt exist or is invalid"
+            )
+        return value
 
 def authorize(request: IPRequest, db: Session) -> bool:
     check = authorize_user(db=db, username=request.name)
@@ -29,7 +34,6 @@ def authorize(request: IPRequest, db: Session) -> bool:
 
 def authenticate(request: IPRequest, db: Session) -> bool:
     hashed_pass_in_db = return_key(db=db, username=request.name)
-    print(f"The retrieved password is:\n{hashed_pass_in_db}")
     if hashed_pass_in_db is None:
         pass_in_db = "dummy".encode()
     else:
@@ -75,18 +79,20 @@ api = FastAPI(
 def scan(request: IPRequest, db:Session = Depends(get_db)):
 
     authentication = authenticate(request=request, db=db)
-    print("It has gone beyond the authentication part")
     if authentication is False:
         raise HTTPException(
             status_code=401,
             detail="The key and/or name in the http request is invalid")
-    
+
+    print("About to start the match statement")
+    print("The scan type is ", request.scan_type)
     match request.scan_type:
-        #This makes use of Ipinfo only
         case "recon_ip_scan":
-            print("Its doing the recon scan now")
+            print("it is doing the recon scan now")
             result = check_ip(target_ip=request.ip_target)
-            return scan_response_template(result=result)
+            print("The returned result is ", result)
+            result_temp = scan_response_template(result=result)
+            return result_temp
         
         case "own_ip":
             if authorize(request=request, db=db) is False:
@@ -94,7 +100,4 @@ def scan(request: IPRequest, db:Session = Depends(get_db)):
                     status_code=401,
                     detail="You are not authorized to do this"
                 )
-            else:
-                result = see_own_ip()
-                return scan_response_template(result=result)
             

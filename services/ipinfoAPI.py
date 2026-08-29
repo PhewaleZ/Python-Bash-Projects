@@ -51,7 +51,6 @@ def make_request(API_key: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Addre
     return (False, last_error)
 
 def see_own_ip() -> tuple[bool, str|dict]:
-    count = 1
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")
     
@@ -69,15 +68,15 @@ def see_own_ip() -> tuple[bool, str|dict]:
 
 def aggregate_results(details) -> dict:
     details = details.json()
-
+    
     ipinfo_details={
         "IP Adress": details["ip"],
-        "asn_code": details["asn_code"],
+        "asn_code": details["asn"],
         "as_name": details["as_name"],
         "as_domain": details["as_domain"],
         "country": details["country"],
     }
-
+    print("the details are",{"internal_results": ipinfo_details})
     return ipinfo_details
 
 def check_ip(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
@@ -87,11 +86,10 @@ def check_ip(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
     if API_key is None:
         return (False, 'IPINFO api key is None')
     
-    response = make_request(API_key=API_key, is_own_ip=True, target_ip=target_ip)
+    response = make_request(API_key=API_key, is_own_ip=False, target_ip=target_ip)
     
     if response[0] is True:
-        ipinfo_results = aggregate_results(details=response[1])
-        return (True, ipinfo_results)
+        return (True, response[1])
     else:
         return (False, response[1])
 
