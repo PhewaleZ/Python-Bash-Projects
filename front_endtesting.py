@@ -21,7 +21,7 @@ def main():
 
 def make_request(target_endpoint, le_dict):
     response = requests.post(url=f"http://127.0.0.1:8000/{target_endpoint}",
-                             json=le_dict, timeout=15)
+                             json=le_dict, timeout=15, headers={"accept": "application/json"})
 
     return response
 
