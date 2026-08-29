@@ -25,7 +25,7 @@ def main():
         
 def initialize_database():
     while True:
-        proposed_username= input("What is the name of the first user \nNote that spaces will be stripped from the password:\n ").strip()
+        proposed_username= input("What is the name of the first user \nNote that spaces will be stripped from the username:\n ").strip()
 
         confirmation = input(f"Can you confirm the username, {proposed_username}? [y/n]:")
 
