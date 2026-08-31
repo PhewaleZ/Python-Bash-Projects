@@ -2,10 +2,10 @@ import requests
 import json
 from dotenv import load_dotenv
 from os import getenv
-from time import sleep
-
+from typing import Literal
+from  ipaddress import IPv4Address, IPv6Address
 #The variable "detail" just holds any relevant information to make the request to the API server
-def make_get_request(query_type, detail) -> tuple[bool, str|requests.Response]:
+def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "HASH", "LIGHT_URL"], detail: str|IPv6Address|IPv4Address) -> tuple[bool, str|requests.Response]:
     url = ''
     last_error = ''
     load_dotenv()
@@ -17,17 +17,17 @@ def make_get_request(query_type, detail) -> tuple[bool, str|requests.Response]:
     header = {"X-OTX-API-KEY": API_key}
 
     match query_type:
-        case "ipv4":
+        case "IPV4":
             url=f"https://otx.alienvault.com/api/v1/indicators/IPv4/{detail}/general"
-        case "ipv6":
+        case "IPV6":
             url=f"https://otx.alienvault.com//api/v1/indicators/IPv6/{detail}/general"
-        case "domain":
+        case "DOMAIN":
             url=f"https://otx.alienvault.com/api/v1/indicators/domain/{detail}/general"
-        case "hostname":
+        case "HOSTNAME":
             url=f"https://otx.alienvault.com/api/v1/indicators/hostname/{detail}/general"
-        case "hash":
+        case "HASH":
             url=f"https://otx.alienvault.com/api/v1/indicators/file/{detail}/general"
-        case "light_url":
+        case "LIGHT_URL":
             url=f"https://otx.alienvault.com/api/v1/indicators/url/{detail}/general"
     
     for _ in range(4):
@@ -67,7 +67,7 @@ def make_get_request(query_type, detail) -> tuple[bool, str|requests.Response]:
 
 def scan_file(file_detail: str, is_hash: bool) -> tuple[bool, str| dict]:
     if is_hash is True:
-        result = make_get_request(query_type="hash", detail=file_detail)
+        result = make_get_request(query_type="HASH", detail=file_detail)
     else:
         return (False, "This functionality isnt present yet")
 
@@ -81,11 +81,11 @@ def scan_file(file_detail: str, is_hash: bool) -> tuple[bool, str| dict]:
     return (True, AV_result_file)
 
 
-def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
-    if is_ipv4 is True:
-        result = make_get_request(query_type="ipv4",detail=target_IP)
+def scan_IP_AV(target_IP: IPv4Address| IPv6Address) -> tuple:
+    if isinstance(target_IP, IPv4Address) is True:
+        result = make_get_request(query_type="IPV4",detail=target_IP)
     else:
-        result = make_get_request(query_type="ipv6", detail=target_IP)
+        result = make_get_request(query_type="IPV6", detail=target_IP)
 
     if result[0] is False:
         return (False, result[1])
@@ -99,7 +99,7 @@ def scan_IP_AV(target_IP: str, is_ipv4: bool) -> tuple:
 
 
 def scan_domain_hostname_AV(target_domain: str) -> tuple[bool, str|dict]:
-    result = make_get_request(query_type="domain", detail=target_domain)
+    result = make_get_request(query_type="DOMAIN", detail=target_domain)
 
     if result[0] is False:
         return (False, result[1]) #type: ignore
@@ -167,7 +167,7 @@ def aggregate_AV_results(rec_response: dict) -> dict:
 
     return (formatted_response)
 
-def make_post_request(query_type: str, detail: str) -> tuple[bool, str|requests.Response]:
+def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
     last_error = ''
     load_dotenv()
     API_key= getenv("AV_API_KEY")
@@ -215,10 +215,10 @@ def make_post_request(query_type: str, detail: str) -> tuple[bool, str|requests.
     return (False, last_error)
 
 
-def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
+def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple:
 
-    if is_lightscan is True:
-        result = make_get_request(query_type="light_url",detail=target_url)
+    if scan_type is "LIGHT_URL":
+        result = make_get_request(query_type="LIGHT_URL",detail=target_url)
 
         if result[0] is False:
             return (False, result[1])
@@ -235,7 +235,7 @@ def scan_url_AV(target_url: str, is_lightscan: bool) -> tuple:
 
         #This is done if the scan being conducted on the URL is complex
     else:
-        result = make_post_request(query_type="url", detail=target_url)
+        result = make_post_request(detail=target_url)
 
         if result[0] is False:
             return (False, result[1])
