@@ -2,7 +2,8 @@ import requests
 import os
 from dotenv import load_dotenv
 from time import sleep
-
+from ipaddress import IPv4Address, IPv6Address
+from typing import Literal
 #NOTE: When a scan is done by virustotal and one of the scanning functions are used, take note that a tuple is returned, the first value in the tuple is going to be a boolean to indicate whether the result was successful
 class PermenantERROR(Exception):
     pass
@@ -59,7 +60,7 @@ def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bo
     
 #NOTE: The scanning ip address VT endpoint accepts both ipv6 and ipv4 addresses
 #The variable scan_type will indicate whether an IP ao domain is being scanned
-async def scan_IP_DOMAIN_VT(target_IP_DOMAIN: str, scan_type: str) -> tuple[bool, str | dict]:
+def scan_IP_DOMAIN_VT(target_IP_DOMAIN: IPv4Address | IPv6Address| str, scan_type: Literal["DOMAIN", "IP"]) -> tuple[bool, str | dict]:
     load_dotenv()
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
@@ -77,7 +78,6 @@ async def scan_IP_DOMAIN_VT(target_IP_DOMAIN: str, scan_type: str) -> tuple[bool
         "x-apikey": api_key
     }
 
-    #check[1] will return the successful results if check[0] is true else if check[0] is false then check[1] is the last error message
     check = send_request(url=url, headers=headers) #type: ignore the unbound issue will never happen as the scan type will always be "IP" or "DOMAIN" 
 
     if check[0] is True:
@@ -87,7 +87,7 @@ async def scan_IP_DOMAIN_VT(target_IP_DOMAIN: str, scan_type: str) -> tuple[bool
         return (False, check[1]) #type: ignore
 
 #info1 contains the IP address of the target IP address or Domain name
-def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: str) -> dict:
+def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Address|IPv6Address|str) -> dict:
     warning = []
 
     rec_response = rec_response.json()
@@ -126,8 +126,8 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: str) -
     return (formatted_response)
 
 
-
-async def scan_file_VT(file_hash, target_file_name) -> tuple[bool, str|dict]:
+#It is assumed that the the file will be converted into an sha-256 hash before reaching this file
+def scan_file_VT(file_hash, target_file_name) -> tuple[bool, str|dict]:
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
