@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from ipaddress import IPv4Address, IPv6Address
 
 #The report_age parameter is used to determine how old the reports retrieved by abuselpdb API can, at max, be
-def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple:
+def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple[bool, str|dict]:
     last_error = ''
     load_dotenv()
     API_key=getenv("ABUSELPDB_API_KEY")
@@ -59,7 +59,7 @@ def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple:
                     continue
         
                 else:
-                    return(True, response)
+                    return(True, aggregate_APDB_results(rec_response=response))
                 
     return (False, last_error)
 
