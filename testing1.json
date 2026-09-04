@@ -1,0 +1,54 @@
+{
+    "results": [
+        {
+            "Result": {
+                "service": "Virustotal",
+                "Status": "Successful",
+                "Data": {
+                    "target": "172.67.128.56",
+                    "warnings": [],
+                    "details": {
+                        "level3": {
+                            "count": 37,
+                            "ratio": 0.4111111111111111
+                        },
+                        "level2": {
+                            "count": 53,
+                            "ratio": 0.5888888888888889
+                        },
+                        "level1": {
+                            "count": 0,
+                            "ratio": 0.0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "Result": {
+                "service": "AbuselPDB",
+                "Status": "Successful",
+                "Data": {
+                    "target_name": "172.67.128.56",
+                    "is_whitelist": true,
+                    "is_tor": false,
+                    "country_of_origin": "US",
+                    "is_whitelisted": true,
+                    "domain": "cloudflare.com",
+                    "concern": {
+                        "abusel_score": 0,
+                        "concern_value": "level 3"
+                    },
+                    "isp_details": {
+                        "isp_name": "Cloudflare, Inc.",
+                        "isp_type": "Content Delivery Network"
+                    },
+                    "report_details": {
+                        "report_count": 0,
+                        "reports": null
+                    }
+                }
+            }
+        }
+    ]
+}

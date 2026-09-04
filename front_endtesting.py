@@ -1,5 +1,6 @@
 import requests
 from ipaddress import IPv4Address
+import json
 def main():
     print("Take not that this is a testing bed to simplify the testing of the api wihtout using curl all the time")
     #name = input("what is name?: ")
@@ -11,13 +12,15 @@ def main():
     json_dict = {
         "name": "Phewale",
         "key": "phewale",
-        "scan_type" :"recon_ip_scan",
-        "ip_target": str(IPv4Address("8.8.8.8"))
+        "scan_type" :"custom",
+        "ip_target": str(IPv4Address("172.67.128.56")),
+        "option1": ["virustotal", "abuselpdb", "ipinfo"]
     }
 
     rec_response = make_request(target_endpoint="ipscan", le_dict=json_dict,)
 
-    print(rec_response.json())
+    with open("testing1.json", "w") as file:
+        json.dump(rec_response.json(), fp=file, indent=4)
 
 def make_request(target_endpoint, le_dict):
     response = requests.post(url=f"http://127.0.0.1:8000/{target_endpoint}",
