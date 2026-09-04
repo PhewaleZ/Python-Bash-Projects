@@ -104,7 +104,6 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Ad
 
     formatted_response = {
         'target': target_name,
-        'country': rec_response["data"]["attributes"]["country"],
         'warnings': warning,
         'details':{
             "level3":{
