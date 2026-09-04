@@ -217,7 +217,7 @@ def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
 
 def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple:
 
-    if scan_type is "LIGHT_URL":
+    if scan_type == "LIGHT_URL":
         result = make_get_request(query_type="LIGHT_URL",detail=target_url)
 
         if result[0] is False:
@@ -275,4 +275,5 @@ def testing_function():
 
     print("DONE")
 
-testing_function()
+if __name__ == "__main__":
+    testing_function()

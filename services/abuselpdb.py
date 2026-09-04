@@ -31,7 +31,7 @@ def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple[
 
     for _ in range(4):
                 try:
-                    response = requests.post(url=url, headers=headers,timeout=10, params=querystring)
+                    response = requests.get(url=url, headers=headers,timeout=10, params=querystring)
                     response.raise_for_status()
     
                 except requests.exceptions.Timeout:
@@ -133,4 +133,6 @@ def testing_function():
 
     print("DONE")
     return 0
-testing_function()
+
+if __name__ == "__main__":
+    testing_function()

@@ -6,9 +6,9 @@ from database.database import get_db
 from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy.orm import Session
-from .services.virustotal import scan_IP_DOMAIN_VT
-from .services.alienvault import scan_IP_AV
-from .services.abuselpdb import scan_ip_APDB
+from services.virustotal import scan_IP_DOMAIN_VT
+from services.alienvault import scan_IP_AV
+from services.abuselpdb import scan_ip_APDB
 from typing import Literal
 
 class IPRequest(BaseModel):
