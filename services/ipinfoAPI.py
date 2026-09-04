@@ -111,3 +111,6 @@ def testing_function():
 
     with open('errtesting.json', 'w') as f:
         json.dump(obj=json_response, fp=f, indent=4)
+
+if __name__ == "__main__":
+    testing_function()
