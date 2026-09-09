@@ -65,9 +65,9 @@ def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "
     return (False, last_error)
 
 
-def scan_file(file_detail: str, is_hash: bool) -> tuple[bool, str| dict]:
+def scan_file_AV(file_hash: str, is_hash=True) -> tuple[bool, str| dict]:
     if is_hash is True:
-        result = make_get_request(query_type="HASH", detail=file_detail)
+        result = make_get_request(query_type="HASH", detail=file_hash)
     else:
         return (False, "This functionality isnt present yet")
 
