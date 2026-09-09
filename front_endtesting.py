@@ -1,6 +1,8 @@
 import requests
 from ipaddress import IPv4Address
 import json
+import hashlib
+
 def main():
     print("Take not that this is a testing bed to simplify the testing of the api wihtout using curl all the time")
     #name = input("what is name?: ")
@@ -9,15 +11,17 @@ def main():
     #target_end = input("What is the target endpoint?: ")
     #target = input("Put the target here\n")
 
+    target_hash = hashlib.sha256(b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*").hexdigest()
+
     json_dict = {
         "name": "Phewale",
         "key": "phewale",
         "scan_type" :"custom",
-        "ip_target": str(IPv4Address("172.67.128.56")),
-        "option1": ["virustotal", "abuselpdb", "ipinfo"]
+        "target_hash": str(target_hash),
+        "scan_engine": ["virustotal", "alienvault"]
     }
 
-    rec_response = make_request(target_endpoint="ipscan", le_dict=json_dict,)
+    rec_response = make_request(target_endpoint="filescan", le_dict=json_dict,)
 
     with open("testing1.json", "w") as file:
         json.dump(rec_response.json(), fp=file, indent=4)
