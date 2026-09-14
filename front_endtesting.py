@@ -21,10 +21,19 @@ def main():
         "scan_engine": ["virustotal", "alienvault"]
     }
 
-    rec_response = make_request(target_endpoint="filescan", le_dict=json_dict,)
+    try:
+        rec_response = make_request(target_endpoint="filescan", le_dict=json_dict,)
+        print(f"The http status is: {rec_response.status_code}")
+        
+        rec_response.raise_for_status()
+        with open("testing1.json", "w") as file:
+            json.dump(rec_response.json(), fp=file, indent=4)
 
-    with open("testing1.json", "w") as file:
-        json.dump(rec_response.json(), fp=file, indent=4)
+    except json.decoder.JSONDecodeError:
+        print("The json file is empty")
+    
+    except:
+        print("An error has occured")
 
 def make_request(target_endpoint, le_dict):
     response = requests.post(url=f"http://127.0.0.1:8000/{target_endpoint}",
