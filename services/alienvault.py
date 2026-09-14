@@ -182,7 +182,7 @@ def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
 
     for _ in range(4):
             try:
-                response = requests.post(url=url, headers=header, data=data,timeout=10)
+                response = requests.post(url=url, headers=header, data=data,timeout=30)
                 response.raise_for_status()
 
             except requests.exceptions.Timeout:
@@ -215,22 +215,21 @@ def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
     return (False, last_error)
 
 
-def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple:
+def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple[bool, str|dict]:
 
     if scan_type == "LIGHT_URL":
         result = make_get_request(query_type="LIGHT_URL",detail=target_url)
 
         if result[0] is False:
-            return (False, result[1])
+            return (False, result[1]) #type: ignore This error will never happen in normal conditions
         else:
             result_json = result[1].json() #type: ignore
 
         if result_json.get("detail", {}) == "endpoint not found":
             return (False, "AV API couldnt find the endpoint")
-
-        AV_result_url = aggregate_AV_results(rec_response=result_json)
-        
-        return (True, AV_result_url)
+        else:
+            AV_result_url = aggregate_AV_results(rec_response=result_json)
+            return (True, AV_result_url)
 
 
         #This is done if the scan being conducted on the URL is complex
@@ -238,10 +237,10 @@ def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -
         result = make_post_request(detail=target_url)
 
         if result[0] is False:
-            return (False, result[1])
+            return (False, result[1]) #type: ignore This error will never happen in normal conditions
         else:
             result_json = result[1]
-        #If the field of status is "okay" then it means that it as ben successfully submitted to the API server and the link to it is returned
+        #If the field of status is "okay" then it means that it as been successfully submitted to the API server and the link to it is returned
         if result_json.get("status", {}) == "okay": #type: ignore
             link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
@@ -250,30 +249,14 @@ def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -
     
 
 def testing_function():
-    load_dotenv()
-    API_key= getenv("AV_API_KEY")
-    header = {"X-OTX-API-KEY": API_key}
-    target="https://hianime.ms/watch-gachiakuta-episode-8-u68b6"
-    data={
-        "url": target
-}
-    url=f"https://otx.alienvault.com/api/v1/indicators/submit_url"
-    try:
-        response = requests.get(url=url,
-                            headers=header,#type: ignore
-                            data=data,
-                            timeout=10)
-        print(f"The status code is: {response.status_code}")
-    except requests.exceptions.Timeout:
-        print("TIMEOUT")
-        return 1
-    except requests.exceptions.JSONDecodeError:
-        print("couldnt decode json")
-        return 1
-    with open("errtesting2.json", "w") as f:
-        json.dump(response.json(), fp=f, indent=4)
+    result = scan_url_AV(target_url="https://hianime.city/", scan_type="LIGHT_URL")
 
-    print("DONE")
+    if result[0] is True:
+        with open("AV_LIGHT_URL_resp_example.json", "w") as f:
+            json.dump(result[1], fp=f, indent=2) # type: ignore
+    else:
+        print(f"An error has occured: {result[1]}")
+    
 
 if __name__ == "__main__":
     testing_function()
