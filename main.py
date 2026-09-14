@@ -76,7 +76,10 @@ class FileRequest(BaseModel):
         
         return corrected_options
         
-
+class URLRequest(BaseModel):
+    name: str
+    key: str
+    url_id: str="Not Specified"
 
 def authorize(username: str, db: Session) -> bool:
     check = authorize_user(db=db, username=username)
@@ -203,8 +206,8 @@ api = FastAPI(
     version="1.0.0"
 )
 
-@api.post("/ipscan")
-def scanip(request: IPRequest,id: str, db:Session = Depends(get_db)):
+@api.post("/ipscans")
+def scanip(request: IPRequest, db:Session = Depends(get_db)):
     is_admin = False
 
     authenticate(request=request, db=db)
@@ -232,7 +235,7 @@ def scanip(request: IPRequest,id: str, db:Session = Depends(get_db)):
     else:
         return ip_scan(target=request.ip_target, type=request.scan_type, is_admin=is_admin, age_option=request.option2)  # type: ignore
 
-@api.post("/filescan")
+@api.post("/filescans")
 def scanfile(request: FileRequest, db:Session = Depends(get_db)):
     results = []
     authenticate(request=request, db=db)
@@ -248,6 +251,8 @@ def scanfile(request: FileRequest, db:Session = Depends(get_db)):
 
     return {"results": results}
 
+@api.post("/urlscans")
+def scanurl(request:)
                 
                     
 
