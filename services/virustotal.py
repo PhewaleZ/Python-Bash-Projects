@@ -93,8 +93,9 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Ad
     harmless_count=rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]
     timeout_count=rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
     total_engines =malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count
-    lvl2_ratio = harmless_count/total_engines
-    lvl1_ratio = (malicious_count+suspicious_count)/total_engines
+    lvl3_ratio = round(undetected_count/total_engines, ndigits=2)
+    lvl2_ratio = round(harmless_count/total_engines, ndigits=2)
+    lvl1_ratio = round((malicious_count+suspicious_count)/total_engines, ndigits=2)
     if (timeout_count > (0.35 * total_engines)):
         warning.append("Large number of engines queried by VT's API failed to scan")
 
@@ -104,7 +105,7 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Ad
         'details':{
             "level3":{
                 "count":undetected_count,
-                "ratio":undetected_count/total_engines
+                "ratio":lvl3_ratio
             },
             "level2":{
                 "count":harmless_count,
@@ -158,12 +159,12 @@ def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict
     sigma_stats_low=sigma_stats["low"]
     total_sigma_stats=sigma_stats_critical+sigma_stats_high+sigma_stats_medium+sigma_stats_low
     if sigma_stats_critical > 0 or (sigma_stats_high+sigma_stats_medium) > total_sigma_stats*0.4:
-        warning.append("Strange or abnormal patterns observed")
+        warning.append("Strange or abnormal patterns observed in 'sigma statistics'")
 
     harmless_vote_count= rec_response["data"]["attributes"]["total_votes"]["harmless"]
     malicious_vote_count= rec_response["data"]["attributes"]["total_votes"]["malicious"]
     total_vote_engines = harmless_vote_count+malicious_vote_count
-    malicious_vote_ratio = (malicious_vote_count/total_vote_engines)
+    malicious_vote_ratio = round(malicious_vote_count/total_vote_engines, ndigits=2)
     match malicious_vote_ratio:
         case x if 1 < x <= 0.7:
             vote_verdict = 'HARMFUL'
@@ -183,8 +184,9 @@ def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict
     failure_count=rec_response["data"]["attributes"]["last_analysis_stats"]["failure"]
     type_unsupported_count=rec_response["data"]["attributes"]["last_analysis_stats"]["type-unsupported"]
     total_engines= malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
-    lvl2_ratio=round((harmless_count+(int(harmless_vote_count*0.003)))/total_engines)
-    lvl1_ratio=round((malicious_count+suspicious_count+(int(malicious_vote_count*0.003)))/total_engines)
+    lvl3_ratio=round((undetected_count)/total_engines, ndigits=2)
+    lvl2_ratio=round((harmless_count+(int(harmless_vote_count*0.003)))/total_engines, ndigits=2)
+    lvl1_ratio=round((malicious_count+suspicious_count+(int(malicious_vote_count*0.003)))/total_engines, ndigits=2)
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
         warning.append("Large number of engines queried by VT's API failed to scan")
 
@@ -194,11 +196,11 @@ def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict
         "details":{
             "community_vote":{
                 "vote_verdict": vote_verdict,
-                "malicious_ratio": round(malicious_vote_ratio, ndigits=2)
+                "malicious_ratio": malicious_vote_ratio
             },
             "level3":{
                 "count":undetected_count,
-                "ratio":round((undetected_count)/total_engines, ndigits=2)
+                "ratio":lvl3_ratio
             },
             #The usage of "int" will remove whatever comes after the decimal point
             "level2":{
@@ -236,9 +238,10 @@ def scan_URL_VT(target_URL):
 
     #This is what will occur if the query fails and nothing else is done
     if check[0] is False:
-        return (False, check[1])
+        return (False, f"The request could not be made to Virustotal's API server, LAST KNOWN STATUS IS:{check[1]}")
     else:
-        analysis_id = check[1]["data"]["id"] #type: ignore
+        ret_result_id = check[1].json() #type: ignore
+        analysis_id = ret_result_id["data"]["id"]
 
     last_status = ''
     #This is the part which attempts to retrieve the analysis
@@ -253,7 +256,7 @@ def scan_URL_VT(target_URL):
         check = send_request(url=url, headers=headers, is_url=False)
         if check[0] is False:
             last_status = check[1]
-            sleep(8)
+            sleep(10)
             continue
         else:
             response = check[1].json() #type: ignore
@@ -273,7 +276,6 @@ def scan_URL_VT(target_URL):
     
 #info1 stores the url which was scanned
 def aggregate_virustotal_results_URLSCAN(rec_response, target_name: str) -> dict:
-    rec_response = rec_response.json()
     warning = []
 
     malicious_count=rec_response["data"]["attributes"]["stats"]["malicious"]
@@ -281,12 +283,13 @@ def aggregate_virustotal_results_URLSCAN(rec_response, target_name: str) -> dict
     undetected_count=rec_response["data"]["attributes"]["stats"]["undetected"]
     harmless_count=rec_response["data"]["attributes"]["stats"]["harmless"]
     timeout_count=rec_response["data"]["attributes"]["stats"]["timeout"]
-    conf_timeout=rec_response["data"]["attributes"]["stats"]["confirmed-timeout"]
+    conf_timeout=rec_response["data"]["attributes"]["stats"]["confirmed_timeout"]
     failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
-    type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type-unsupported"]
+    type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
     total_engines = malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
-    lvl2_ratio = harmless_count/total_engines
-    lvl3_ratio = (malicious_count+suspicious_count)/total_engines
+    lvl3_ratio = round(undetected_count/total_engines, ndigits=2)
+    lvl2_ratio = round(harmless_count/total_engines, ndigits=2)
+    lvl1_ratio = (malicious_count+suspicious_count)/total_engines
 
     if ((timeout_count+conf_timeout+failure_count+type_unsupported_count)/total_engines) > 0.35:
         warning.append("Large number of engines queried by VT's API failed to scan")
@@ -296,7 +299,7 @@ def aggregate_virustotal_results_URLSCAN(rec_response, target_name: str) -> dict
         "details":{
             "level3":{
                 "count":undetected_count,
-                "ratio":undetected_count/total_engines
+                "ratio":lvl3_ratio
             },
             "level2":{
                 "count":harmless_count,
@@ -304,7 +307,7 @@ def aggregate_virustotal_results_URLSCAN(rec_response, target_name: str) -> dict
             },
             "level1":{
                 "count":malicious_count+suspicious_count,
-                "ratio":lvl3_ratio
+                "ratio":lvl1_ratio
             }
         }
     }
