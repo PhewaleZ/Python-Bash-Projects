@@ -4,27 +4,23 @@
             "Result": {
                 "id": "Not Specified",
                 "service": "Virustotal",
-                "scan_type": "File",
+                "scan_type": "URL",
                 "Status": "Successful",
                 "Data": {
-                    "target_file": "Not Specified",
+                    "target_url": "https://totalsporteki.is/",
                     "warnings": [],
                     "details": {
-                        "community_vote": {
-                            "vote_verdict": "SAFE",
-                            "malicious_ratio": 0.15393093313739897
-                        },
                         "level3": {
-                            "count": 2,
-                            "ratio": 0.03
+                            "count": 32,
+                            "ratio": 0.36
                         },
                         "level2": {
-                            "count": 6,
-                            "ratio": 0
+                            "count": 58,
+                            "ratio": 0.6444444444444445
                         },
                         "level1": {
-                            "count": 67,
-                            "ratio": 1
+                            "count": 0,
+                            "ratio": 0.0
                         }
                     }
                 }
@@ -34,216 +30,15 @@
             "Result": {
                 "id": "Not Specified",
                 "service": "Alienvault",
-                "scan_type": "File",
+                "scan_type": "URL",
                 "Status": "Successful",
                 "Data": {
-                    "target": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
-                    "pulse_count": 50,
+                    "target": "https://totalsporteki.is/",
+                    "pulse_count": 0,
                     "found": true,
                     "pulse_details": {
-                        "pulses": [
-                            {
-                                "name": "Auditor\u00eda_Servicios_Cr\u00edticos_Jeff",
-                                "id": "6a2d8d06c162afe209cca676"
-                            },
-                            {
-                                "name": "Loki scan",
-                                "id": "698ccef65de079ed10f80c7a"
-                            },
-                            {
-                                "name": "Lab-ThreatIntel-31CXREYES",
-                                "id": "6a289e3b5a86aaeebd251213"
-                            },
-                            {
-                                "name": "Windows Threat Hunting Lab",
-                                "id": "6a055367b192e9c534122f7b"
-                            },
-                            {
-                                "name": "Auditoria_Servicios_Criticos_Gisela",
-                                "id": "69f6df04798105b7eac99c0f"
-                            },
-                            {
-                                "name": "Auditoria_servicios_critico_DerekCuevas",
-                                "id": "69eecd6ef82d63887674b0f9"
-                            },
-                            {
-                                "name": "Auditor\u00eda_Servicios_Cr\u00edticos_DylanAguilar",
-                                "id": "69e99fa1c52b6d2fbe6d8811"
-                            },
-                            {
-                                "name": "Escaneo Malicioso",
-                                "id": "69e81e534ebba8779bfe550b"
-                            },
-                            {
-                                "name": "Escaneo Malicioso",
-                                "id": "69e81e4f599856672826be43"
-                            },
-                            {
-                                "name": "Escaneo Malicioso",
-                                "id": "69e81e5393fba6a9c47c920e"
-                            },
-                            {
-                                "name": "Lab 3",
-                                "id": "69e71ec365c821a72f95705c"
-                            },
-                            {
-                                "name": "Lab 3",
-                                "id": "69e71ebd702704e87cdd1189"
-                            },
-                            {
-                                "name": "EICAR Test Pulse",
-                                "id": "6a0b0c29399a159f07d20ed5"
-                            },
-                            {
-                                "name": "pulse-lab",
-                                "id": "69def1fee2328910670dba4c"
-                            },
-                            {
-                                "name": "pulse-lab",
-                                "id": "69def1c2f89fc9258dd109f6"
-                            },
-                            {
-                                "name": "Lab - Pulse de Seguridad2",
-                                "id": "69dee4286eb662994336e19e"
-                            },
-                            {
-                                "name": "Lab - Pulse de Seguridad2",
-                                "id": "69dee41a19582397b6bfa501"
-                            },
-                            {
-                                "name": "otxmalwarec4",
-                                "id": "69e035f38aa8db105f8525d6"
-                            },
-                            {
-                                "name": "URLSpirit Spyware | Targeted Device attacks | MITM attacks | AI and Browser Attacks",
-                                "id": "69afd95e9073ee0f67be8694"
-                            },
-                            {
-                                "name": "njRAT| BazarLoader| Darkside 2020 .Beware \u2022 WebToolbar \u2022 Qbot",
-                                "id": "6916d97edb28b2616ffac3ab"
-                            },
-                            {
-                                "name": "agent",
-                                "id": "68ff2877566e736f2d5c19fb"
-                            },
-                            {
-                                "name": "Alienvault OTX",
-                                "id": "68ddff25c4839b24e85717d2"
-                            },
-                            {
-                                "name": "EICAR-IoC-Lab1",
-                                "id": "68de107c4ae9acb7a91adf5c"
-                            },
-                            {
-                                "name": "Splunk Eicar",
-                                "id": "68df476e229db101a44ed913"
-                            },
-                            {
-                                "name": "ioc_apt_41",
-                                "id": "68de28b79e788fd898504902"
-                            },
-                            {
-                                "name": "Av-EICAR",
-                                "id": "68ddfaa35165b3659406674f"
-                            },
-                            {
-                                "name": "eicar",
-                                "id": "68c43240f33e6c75fa68e21c"
-                            },
-                            {
-                                "name": "EICAR",
-                                "id": "68c3b32247f11a49fbffcb3c"
-                            },
-                            {
-                                "name": "EICAR",
-                                "id": "68c3b322e33ad4e267b8331e"
-                            },
-                            {
-                                "name": "Tines API Pulse Example",
-                                "id": "6892f5c6065d8f0b8e06957c"
-                            },
-                            {
-                                "name": "TrojanDownloader:Win32/Tsunovest.A",
-                                "id": "67c659b2331a0c096ff6f026"
-                            },
-                            {
-                                "name": "Lab ETITC",
-                                "id": "68af361c2c01c4247ee7576d"
-                            },
-                            {
-                                "name": "Cymulate Hashes for Whitelisting",
-                                "id": "68a86f7da9b037c6b307da0e"
-                            },
-                            {
-                                "name": "S\u0105d Rejonowy w Jeleniej Gorze  POLAND",
-                                "id": "66246ff49ed29ea9bb2bf122"
-                            },
-                            {
-                                "name": "EICAR TEST",
-                                "id": "6806c80eeea4691ad45a5d03"
-                            },
-                            {
-                                "name": "Qbot ",
-                                "id": "66d95bd10bfcc8c3dd66a44d"
-                            },
-                            {
-                                "name": "Python: OVSAgentServer Document (autofilled name)",
-                                "id": "6660c1268a1f430e17236b55"
-                            },
-                            {
-                                "name": "Thor-Lite Linux 64 (06.11.24) - enriched a bit more but not 'pruned'",
-                                "id": "6668b85065eec626e4766a38"
-                            },
-                            {
-                                "name": "Payload Trends in Malicious OneNote Samples",
-                                "id": "6645ed409da6daabc114d388"
-                            },
-                            {
-                                "name": "Payload Trends in Malicious OneNote Samples",
-                                "id": "6645ed3b6befade15bbf05ca"
-                            },
-                            {
-                                "name": "Payload Trends in Malicious OneNote Samples",
-                                "id": "6645ed3bee45e8cd3169f56f"
-                            },
-                            {
-                                "name": "Payload Trends in Malicious OneNote Samples",
-                                "id": "6645ed3a733c862c9173bd20"
-                            },
-                            {
-                                "name": "Payload Trends in Malicious OneNote Samples",
-                                "id": "6645ed391647a47f85006e18"
-                            },
-                            {
-                                "name": "Payload Trends in Malicious OneNote Samples",
-                                "id": "6645ed35b3343624267b968b"
-                            },
-                            {
-                                "name": "Original State ",
-                                "id": "65e0ee3c026bf0e346f62f80"
-                            },
-                            {
-                                "name": "Software Packing | Mirai \u2022 Emotet \u2022 Pottieq | Mercer Museum ",
-                                "id": "65de91e67d0d575c27960e12"
-                            },
-                            {
-                                "name": "Software Packing | Mirai \u2022 Emotet \u2022 Pottieq | Mercer Museum Library",
-                                "id": "65dbc4eff93b04cbde5fa549"
-                            },
-                            {
-                                "name": "[Test] eicars",
-                                "id": "66017eeab9107e67f3054037"
-                            },
-                            {
-                                "name": "FortiEDR test pulse",
-                                "id": "65ddc3426cde6faa4264cf1c"
-                            },
-                            {
-                                "name": "njRAT| BazarLoader| Daekside2020 .Beware \u2022 WebToolbar \u2022 Qbot",
-                                "id": "654971c396ca4306a6534b12"
-                            }
-                        ],
-                        "concern": "level 1"
+                        "pulses": null,
+                        "concern": null
                     }
                 }
             }
