@@ -6,15 +6,15 @@ from database.database import get_db
 from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy.orm import Session
-from services.virustotal import scan_IP_DOMAIN_VT,scan_file_VT
-from services.alienvault import scan_IP_AV,scan_file_AV
+from services.virustotal import scan_IP_DOMAIN_VT,scan_file_VT, scan_URL_VT
+from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV
 from services.abuselpdb import scan_ip_APDB
 from typing import Literal
 
 class IPRequest(BaseModel):
     name: str
     scan_type: str
-    ip_target: IPv4Address | IPv6Address
+    target_ip: IPv4Address | IPv6Address
     key: str
     ip_id: str = "Not Specified"
     #The option1 attribute is used when a scan using a specific service is requried, its a list of the options
@@ -58,7 +58,7 @@ class FileRequest(BaseModel):
     target_hash: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
     key: str
     file_id:str = "Not Specified"
-    scan_engine: list = []
+    scan_engine: list
     @field_validator("scan_engine")
     @classmethod
     def scantype_check(cls, value):
@@ -80,6 +80,24 @@ class URLRequest(BaseModel):
     name: str
     key: str
     url_id: str="Not Specified"
+    target_url: str
+    scan_engine: list = []
+    @field_validator("scan_engine")
+    @classmethod
+    def check_scan_engine(cls, value):
+        corrected_options = []
+        aval_option = ["virustotal", "alienvault"]
+        for element in value:
+            if element in aval_option:
+                corrected_options.append(element)
+
+        if corrected_options is False:
+            raise HTTPException(
+                status_code=422,
+                detail="No valid engine was specified in the request"
+            )
+
+        return corrected_options
 
 def authorize(username: str, db: Session) -> bool:
     check = authorize_user(db=db, username=username)
@@ -89,7 +107,7 @@ def authorize(username: str, db: Session) -> bool:
         return check["is_admin"]
 
 
-def authenticate(request: IPRequest|FileRequest, db: Session):
+def authenticate(request: IPRequest|FileRequest|URLRequest, db: Session):
     hashed_pass_in_db = return_key(db=db, username=request.name)
     if hashed_pass_in_db is None:
         pass_in_db = "dummy".encode()
@@ -161,7 +179,7 @@ def ip_scan(target: IPv4Address|IPv6Address , type: Literal["recon_ip_scan", "ow
                 ABPDBresult = ABPDBscan(target=target, age=age_option, id_detail=id_detail)
                 return {"results":[VTresult, AVresult, ABPDBresult]}
     
-def VTscan(scantype: Literal["domain", "file", "ipaddress"], target: str|IPv6Address|IPv4Address, id_detail: str):
+def VTscan(scantype: Literal["domain", "file", "ipaddress", "url"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
         case "ipaddress":
             VTresult = scan_IP_DOMAIN_VT(target_IP_DOMAIN=target, scan_type="IP")
@@ -171,13 +189,17 @@ def VTscan(scantype: Literal["domain", "file", "ipaddress"], target: str|IPv6Add
             VTresult = scan_file_VT(file_hash=target,target_file_name=id_detail)
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="File", id_detail=id_detail)
             return VTresult_temp
+        case "url":
+            VTresult = scan_URL_VT(target_URL=target)
+            VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="URL", id_detail=id_detail)
+            return VTresult_temp
         case _:
             raise HTTPException(
                 status_code=503,
                 detail="This service hasnt been implemented et"
             )
 
-def AVscan(scantype: Literal["domain", "file", "ipaddress"], target: str|IPv6Address|IPv4Address, id_detail: str):
+def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
         case "ipaddress":
             AVresult = scan_IP_AV(target_IP=target) # type: ignore
@@ -186,6 +208,10 @@ def AVscan(scantype: Literal["domain", "file", "ipaddress"], target: str|IPv6Add
         case "file":
             AVresult = scan_file_AV(file_hash=target) # type: ignore
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", scan_type="File", id_detail=id_detail)
+            return AVresult_temp
+        case "url_light":
+            AVresult = scan_url_AV(target_url=target, scan_type="LIGHT_URL")
+            AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", scan_type="URL", id_detail=id_detail)
             return AVresult_temp
         case _:
             raise HTTPException(
@@ -220,20 +246,20 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
         for service in request.option1:
             match service:
                 case "abuselpdb":
-                    ABPDBresult = ABPDBscan(target=request.ip_target, age=request.option2, id_detail=request.ip_id)
+                    ABPDBresult = ABPDBscan(target=request.target_ip, age=request.option2, id_detail=request.ip_id)
                     results.append(ABPDBresult)
 
                 case "virustotal":
-                    VTresult = VTscan(scantype="ipaddress", target=request.ip_target, id_detail=request.ip_id)
+                    VTresult = VTscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
                     results.append(VTresult)
 
                 case "alienvault":
-                    AVresult = AVscan(scantype="ipaddress", target=request.ip_target, id_detail=request.ip_id)
+                    AVresult = AVscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
                     results.append(AVresult)
 
         return {"results": results}
     else:
-        return ip_scan(target=request.ip_target, type=request.scan_type, is_admin=is_admin, age_option=request.option2)  # type: ignore
+        return ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.option2)  # type: ignore
 
 @api.post("/filescans")
 def scanfile(request: FileRequest, db:Session = Depends(get_db)):
@@ -251,8 +277,22 @@ def scanfile(request: FileRequest, db:Session = Depends(get_db)):
 
     return {"results": results}
 
-@api.post("/urlscans")
-def scanurl(request:)
+@api.post("/urlscans/lightscans")
+def scanurl(request: URLRequest, db:Session = Depends(get_db)):
+    results = []
+
+    authenticate(request=request, db=db)
+
+    for option in request.scan_engine:
+        match option:
+            case "virustotal":
+                VTresult = VTscan(scantype="url", target=request.target_url, id_detail=request.url_id)
+                results.append(VTresult)
+            case "alienvault":
+                AVresult = AVscan(scantype="url_light", target=request.target_url, id_detail=request.url_id)
+                results.append(AVresult)
+
+    return {"results": results}
                 
                     
 
