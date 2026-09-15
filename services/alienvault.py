@@ -215,13 +215,13 @@ def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
     return (False, last_error)
 
 
-def scan_url_AV(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple[bool, str|dict]:
+def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple[bool, str|dict]:
 
     if scan_type == "LIGHT_URL":
         result = make_get_request(query_type="LIGHT_URL",detail=target_url)
 
         if result[0] is False:
-            return (False, result[1]) #type: ignore This error will never happen in normal conditions
+            return (False, f"The request could not be made to Alienvault's API server, LAST KNOWN STATUS IS {result[1]}")
         else:
             result_json = result[1].json() #type: ignore
 
