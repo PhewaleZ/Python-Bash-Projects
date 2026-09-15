@@ -17,12 +17,12 @@ def main():
         "name": "Phewale",
         "key": "phewale",
         "scan_type" :"custom",
-        "target_hash": str(target_hash),
+        "target_url": str("https://totalsporteki.is/"),
         "scan_engine": ["virustotal", "alienvault"]
     }
 
     try:
-        rec_response = make_request(target_endpoint="filescan", le_dict=json_dict,)
+        rec_response = make_request(target_endpoint="urlscans/lightscans", le_dict=json_dict)
         print(f"The http status is: {rec_response.status_code}")
         
         rec_response.raise_for_status()
