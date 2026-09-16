@@ -1,3 +1,6 @@
 .env
 ./testingfile.txt
 .git
+./services/AV_resp_examples
+./services/IP_info_resp_examples
+./services/VT_resp_examples

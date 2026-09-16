@@ -16,14 +16,14 @@ def main():
     json_dict = {
         "name": "Phewale",
         "key": "phewale",
-        "scan_type" :"custom",
-        "target_url": str("https://totalsporteki.is/"),
-        "scan_engine": ["virustotal", "alienvault"]
+        "scan_type" :"nothing",
+        "target_url": str("Fake0url"),
+        "scan_engine": []
     }
 
     try:
         rec_response = make_request(target_endpoint="urlscans/lightscans", le_dict=json_dict)
-        print(f"The http status is: {rec_response.status_code}")
+        print(f"The http status is: {rec_response.status_code}, information is: {rec_response.reason}")
         
         rec_response.raise_for_status()
         with open("testing1.json", "w") as file:
@@ -31,9 +31,9 @@ def main():
 
     except json.decoder.JSONDecodeError:
         print("The json file is empty")
-    
     except:
         print("An error has occured")
+    
 
 def make_request(target_endpoint, le_dict):
     response = requests.post(url=f"http://127.0.0.1:8000/{target_endpoint}",
