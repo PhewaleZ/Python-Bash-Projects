@@ -239,9 +239,9 @@ def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tup
         if result[0] is False:
             return (False, result[1]) #type: ignore This error will never happen in normal conditions
         else:
-            result_json = result[1]
+            result_json = result[1].json() #type: ignore 
         #If the field of status is "okay" then it means that it as been successfully submitted to the API server and the link to it is returned
-        if result_json.get("status", {}) == "okay": #type: ignore
+        if result_json.get("status", {}) == "ok": #type: ignore
             link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
         else:
