@@ -216,7 +216,6 @@ def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict
 
     return formatted_response
 
-#THIS SIMPLY RETURNS AN ANALYSIS ID, ANOTHER FUNCTION WILL FETCH THE DATA
 def scan_URL_VT(target_URL):
     load_dotenv()
 
