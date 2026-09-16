@@ -44,7 +44,7 @@ class IPRequest(BaseModel):
             if element in options:
                 corrected_options.append(element)
 
-        if corrected_options is False:
+        if not corrected_options:
             raise HTTPException(
                     status_code=422,
                     detail="The selected scan types do not exist or are invalid"
@@ -68,20 +68,20 @@ class FileRequest(BaseModel):
             if option in options:
                 corrected_options.append(option)
 
-        if corrected_options is False:
+        if not corrected_options:
             raise HTTPException(
-                status_code=400,
+                status_code=422,
                 detail="No valid engine was specified in the request"
             )
         
         return corrected_options
         
-class URLRequest(BaseModel):
+class URLRequestLight(BaseModel):
     name: str
     key: str
     url_id: str="Not Specified"
     target_url: str
-    scan_engine: list = []
+    scan_engine: list
     @field_validator("scan_engine")
     @classmethod
     def check_scan_engine(cls, value):
@@ -91,13 +91,22 @@ class URLRequest(BaseModel):
             if element in aval_option:
                 corrected_options.append(element)
 
-        if corrected_options is False:
+        if not corrected_options:
             raise HTTPException(
                 status_code=422,
                 detail="No valid engine was specified in the request"
             )
 
         return corrected_options
+
+class URLRequestHeavy(BaseModel):
+    name: str
+    key: str
+    url_id: str="Not Specified"
+    target_url: str
+
+class DomainRequest(BaseModel):
+    ...
 
 def authorize(username: str, db: Session) -> bool:
     check = authorize_user(db=db, username=username)
@@ -107,7 +116,7 @@ def authorize(username: str, db: Session) -> bool:
         return check["is_admin"]
 
 
-def authenticate(request: IPRequest|FileRequest|URLRequest, db: Session):
+def authenticate(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight, db: Session):
     hashed_pass_in_db = return_key(db=db, username=request.name)
     if hashed_pass_in_db is None:
         pass_in_db = "dummy".encode()
@@ -199,7 +208,7 @@ def VTscan(scantype: Literal["domain", "file", "ipaddress", "url"], target: str|
                 detail="This service hasnt been implemented et"
             )
 
-def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light"], target: str|IPv6Address|IPv4Address, id_detail: str):
+def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light", "url_heavy"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
         case "ipaddress":
             AVresult = scan_IP_AV(target_IP=target) # type: ignore
@@ -212,6 +221,10 @@ def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light"], target
         case "url_light":
             AVresult = scan_url_AV(target_url=target, scan_type="LIGHT_URL")
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", scan_type="URL", id_detail=id_detail)
+            return AVresult_temp
+        case "url_heavy":
+            AVresult = scan_url_AV(target_url=target, scan_type="HEAVY_URL")
+            AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", id_detail=id_detail, scan_type="URL")
             return AVresult_temp
         case _:
             raise HTTPException(
@@ -278,7 +291,7 @@ def scanfile(request: FileRequest, db:Session = Depends(get_db)):
     return {"results": results}
 
 @api.post("/urlscans/lightscans")
-def scanurl(request: URLRequest, db:Session = Depends(get_db)):
+def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
     results = []
 
     authenticate(request=request, db=db)
@@ -293,6 +306,20 @@ def scanurl(request: URLRequest, db:Session = Depends(get_db)):
                 results.append(AVresult)
 
     return {"results": results}
+
+@api.post("/urlscans/heavyscans")
+def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
+    authenticate(request=request, db=db)
+
+    AVresult = AVscan(scantype="url_heavy", target=request.target_url, id_detail=request.url_id)
+
+    return {"results": AVresult}
+
+@api.post("/domainscans")
+def scandomain():
+    ...
+
+
                 
                     
 
