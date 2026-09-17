@@ -24,8 +24,7 @@ def main():
     try:
         rec_response = make_request(target_endpoint="urlscans/lightscans", le_dict=json_dict)
         print(f"The http status is: {rec_response.status_code}, information is: {rec_response.reason}")
-        
-        rec_response.raise_for_status()
+
         with open("testing1.json", "w") as file:
             json.dump(rec_response.json(), fp=file, indent=4)
 
