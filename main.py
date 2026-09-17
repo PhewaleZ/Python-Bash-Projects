@@ -106,7 +106,11 @@ class URLRequestHeavy(BaseModel):
     target_url: str
 
 class DomainRequest(BaseModel):
-    ...
+    name: str
+    key: str
+    domain_id: str="Not Specified"
+    target_domain: str
+    is_hostname: bool = False
 
 def authorize(username: str, db: Session) -> bool:
     check = authorize_user(db=db, username=username)
