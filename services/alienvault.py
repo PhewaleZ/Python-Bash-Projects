@@ -98,8 +98,11 @@ def scan_IP_AV(target_IP: IPv4Address| IPv6Address) -> tuple:
 
 
 
-def scan_domain_hostname_AV(target_domain: str) -> tuple[bool, str|dict]:
-    result = make_get_request(query_type="DOMAIN", detail=target_domain)
+def scan_domain_hostname_AV(target_domain: str, is_domain: bool) -> tuple[bool, str|dict]:
+    if is_domain is True:
+        result = make_get_request(query_type="DOMAIN", detail=target_domain)
+    else:
+        result = make_get_request(query_type="HOSTNAME", detail=target_domain)
 
     if result[0] is False:
         return (False, result[1]) #type: ignore
@@ -118,52 +121,37 @@ def aggregate_AV_results(rec_response: dict) -> dict:
     else:
         found = False
     target_name = rec_response["indicator"]
-    #This part will be done if the number of pulses are greater than 0
-    if pulse_count >= 1:
-        details_of_pulses = []
-        pulses=rec_response["pulse_info"]["pulses"]
+    details_of_pulses = []
+    pulses=rec_response["pulse_info"]["pulses"]
 
-        for pulse in pulses:
-            pulse_id=pulse["id"]
-            pulse_name=pulse["name"]
+    for pulse in pulses:
+        pulse_id=pulse["id"]
+        pulse_name=pulse["name"]
 
-            details_of_pulses.append({"name":pulse_name,
-                                      "id": pulse_id})
-        #If less than 3 pulses are found then its treated as level 3 as the absence of evidence doesnt mean that the target is clean
-        match pulse_count:
-            case x if pulse_count <= 2:
-                concern = "level 3"
-            case x if 3 <= pulse_count <= 5:
-                concern = "level 2"
-            case x if pulse_count >= 6:
-                concern = "level 1"
+        details_of_pulses.append({"name":pulse_name,
+                                  "id": pulse_id})
+    #If less than 3 pulses are found then its treated as level 3 as the absence of evidence doesnt mean that the target is clean
+    match pulse_count:
+        case x if pulse_count <= 2:
+            concern = "level 3"
+        case x if 3 <= pulse_count <= 5:
+            concern = "level 2"
+        case x if pulse_count >= 6:
+            concern = "level 1"
 
-        #The found key is used to indicate if the AV API actually had an entry for the result, its not a guarantee just an extra piece of info
-        formatted_response ={
-            "target":target_name,
-            "pulse_count":pulse_count,
-            "found":found,
-            "pulse_details":{
-                "pulses":details_of_pulses,
-                "concern": concern
-            }
-        }
-        
-        #NOTE: insert function which writes to the database here
-        #NOTE: facilitate the checking of the full response from the database should be done for this API
-
-        return (formatted_response)
-    
-    #If the number of pulses are 0 then the following dictionary is returned instead
-    formatted_response = {
+    #The found key is used to indicate if the AV API actually had an entry for the result, its not a guarantee just an extra piece of info
+    formatted_response ={
         "target":target_name,
-        "pulse_count":0,
+        "pulse_count":pulse_count,
         "found":found,
         "pulse_details":{
-            "pulses":None,
-            "concern": None
+            "pulses":details_of_pulses,
+            "concern": concern
         }
     }
+    
+    #NOTE: insert function which writes to the database here
+    #NOTE: facilitate the checking of the full response from the database should be done for this API
 
     return (formatted_response)
 
@@ -249,13 +237,12 @@ def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tup
     
 
 def testing_function():
-    result = scan_url_AV(target_url="https://hianime.city/", scan_type="LIGHT_URL")
-
-    if result[0] is True:
-        with open("AV_LIGHT_URL_resp_example.json", "w") as f:
-            json.dump(result[1], fp=f, indent=2) # type: ignore
-    else:
-        print(f"An error has occured: {result[1]}")
+    result = scan_domain_hostname_AV(target_domain="gmail.com", is_domain=False)
+    #if result[0] is True:
+        #with open("AV_Domain_resp_example.json", "w") as f:
+        #    json.dump(result[1], fp=f, indent=2) # type: ignore
+    #else:
+        #print(f"An error has occured: {result[1]}")
     
 
 if __name__ == "__main__":
