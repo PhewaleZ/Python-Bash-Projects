@@ -1,5 +1,10 @@
 # README
 This is the repo which will store all my Python, Bash and other programming/scripting language related projects
 
-## Python
-### 
+## List of python projects
+#### Password Breach Checker using HIBP API endpoint
+This project allows for passwords to be input individually or in bulk, then be checked if they appeared in any password breaches. This project uses Have I been Pwned API endpoint.
+
+## List of Bash projects
+#### GUI Bash file sorter
+This project is a file sorter which allows for users to input extensions and a target directory. The code will then search for all files matching that extension and place them is a directory, all while providing a Graphical User Interface
