@@ -344,17 +344,17 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
 def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
     authenticate(request=request, db=db)
 
-    results = []
+    result = []
     for option in request.scan_engines:
         match option:
             case "alienvault":
                 AVresult = AVscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
-                results.append(AVresult)
+                result.append(AVresult)
             case "virustotal":
                 VTresult = VTscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
-                results.append(VTresult)
+                result.append(VTresult)
 
-    return {"results": results}
+    return {"results": result}
             
 
 
