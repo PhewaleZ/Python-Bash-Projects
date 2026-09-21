@@ -98,7 +98,7 @@ def scan_IP_AV(target_IP: IPv4Address| IPv6Address) -> tuple:
 
 
 
-def scan_domain_hostname_AV(target_domain: str, is_domain: bool) -> tuple[bool, str|dict]:
+def scan_domain_hostname_AV(target_domain, is_domain: bool) -> tuple[bool, str|dict]:
     if is_domain is True:
         result = make_get_request(query_type="DOMAIN", detail=target_domain)
     else:
