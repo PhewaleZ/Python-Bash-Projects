@@ -7,7 +7,7 @@ from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy.orm import Session
 from services.virustotal import scan_IP_DOMAIN_VT,scan_file_VT, scan_URL_VT
-from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV
+from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV, scan_domain_hostname_AV
 from services.abuselpdb import scan_ip_APDB
 from typing import Literal
 
@@ -18,10 +18,9 @@ class IPRequest(BaseModel):
     key: str
     ip_id: str = "Not Specified"
     #The option1 attribute is used when a scan using a specific service is requried, its a list of the options
-    option1 : list = []
-    #The option2 attribute is used with abuselpdb for selecting the age of IP reports
-    option2 : int = 0
-    #NOTE: Make changes to this as more features get added
+    scan_engine : list = []
+    #The report_age attribute is used with abuselpdb for selecting the age of IP reports
+    report_age : int = 0
     @field_validator("scan_type")
     @classmethod
     def check_scantype(cls, value):
@@ -33,7 +32,7 @@ class IPRequest(BaseModel):
             )
         return value
     
-    @field_validator("option1")
+    @field_validator("scan_engine")
     @classmethod
     def check_option1(cls, value):
         #Valid options will be placed here
@@ -111,6 +110,24 @@ class DomainRequest(BaseModel):
     domain_id: str="Not Specified"
     target_domain: str
     is_hostname: bool = False
+    scan_engines: list
+    @field_validator("scan_engines")
+    @classmethod
+    def check_scan_engine(cls, value):
+        aval_option = ["alienvault", "virustotal"]
+        corrected_options = []
+        for element in value:
+            if element in aval_option:
+                corrected_options.append(element)
+        
+        if not corrected_options:
+            raise HTTPException(
+                        status_code=422,
+                        detail="No valid engine was specified in the request"
+                    )
+        
+        return corrected_options
+
 
 def authorize(username: str, db: Session) -> bool:
     check = authorize_user(db=db, username=username)
@@ -120,7 +137,7 @@ def authorize(username: str, db: Session) -> bool:
         return check["is_admin"]
 
 
-def authenticate(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight, db: Session):
+def authenticate(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
     hashed_pass_in_db = return_key(db=db, username=request.name)
     if hashed_pass_in_db is None:
         pass_in_db = "dummy".encode()
@@ -230,6 +247,10 @@ def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light", "url_he
             AVresult = scan_url_AV(target_url=target, scan_type="HEAVY_URL")
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", id_detail=id_detail, scan_type="URL")
             return AVresult_temp
+        case "domain":
+            AVresult = scan_domain_hostname_AV(target_domain=target, is_domain=True)
+            AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", id_detail=id_detail, scan_type="Domain")
+            return AVresult_temp
         case _:
             raise HTTPException(
                         status_code=503,
@@ -260,10 +281,10 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
 
     if request.scan_type == "custom":
         results = []
-        for service in request.option1:
+        for service in request.scan_engine:
             match service:
                 case "abuselpdb":
-                    ABPDBresult = ABPDBscan(target=request.target_ip, age=request.option2, id_detail=request.ip_id)
+                    ABPDBresult = ABPDBscan(target=request.target_ip, age=request.report_age, id_detail=request.ip_id)
                     results.append(ABPDBresult)
 
                 case "virustotal":
@@ -276,7 +297,7 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
 
         return {"results": results}
     else:
-        return ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.option2)  # type: ignore
+        return ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.report_age)  # type: ignore
 
 @api.post("/filescans")
 def scanfile(request: FileRequest, db:Session = Depends(get_db)):
@@ -320,8 +341,22 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
     return {"results": AVresult}
 
 @api.post("/domainscans")
-def scandomain():
-    ...
+def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
+    authenticate(request=request, db=db)
+
+    results = []
+    for option in request.scan_engines:
+        match option:
+            case "alienvault":
+                AVresult = AVscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
+                results.append(AVresult)
+            case "virustotal":
+                VTresult = VTscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
+                results.append(VTresult)
+
+    return {"results": results}
+            
+
 
 
                 
