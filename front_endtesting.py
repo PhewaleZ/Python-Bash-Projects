@@ -17,12 +17,12 @@ def main():
         "name": "Phewale",
         "key": "phewale",
         "scan_type" :"nothing",
-        "target_url": str("Fake0url"),
-        "scan_engine": []
+        "target_domain": "google.com",
+        "scan_engines": ["virustotal"]
     }
 
     try:
-        rec_response = make_request(target_endpoint="urlscans/lightscans", le_dict=json_dict)
+        rec_response = make_request(target_endpoint="domainscans", le_dict=json_dict)
         print(f"The http status is: {rec_response.status_code}, information is: {rec_response.reason}")
 
         with open("testing1.json", "w") as file:
