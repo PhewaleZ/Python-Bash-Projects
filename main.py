@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Depends,HTTPException
-from pydantic import BaseModel, field_validator, Field
 import bcrypt
 from database.db_functions import return_key,authorize_user
 from database.database import get_db
@@ -10,123 +9,7 @@ from services.virustotal import scan_IP_DOMAIN_VT,scan_file_VT, scan_URL_VT
 from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV, scan_domain_hostname_AV
 from services.abuselpdb import scan_ip_APDB
 from typing import Literal
-
-class IPRequest(BaseModel):
-    name: str
-    scan_type: str
-    target_ip: IPv4Address | IPv6Address
-    key: str
-    ip_id: str = "Not Specified"
-    #The option1 attribute is used when a scan using a specific service is requried, its a list of the options
-    scan_engine : list = []
-    #The report_age attribute is used with abuselpdb for selecting the age of IP reports
-    report_age : int = 0
-    @field_validator("scan_type")
-    @classmethod
-    def check_scantype(cls, value):
-        options = ["recon_ip_scan", "own_ip", "scan_ip", "custom"]
-        if value not in options:
-            raise HTTPException(
-                status_code=422,
-                detail="The selected scan type doesnt exist or is invalid"
-            )
-        return value
-    
-    @field_validator("scan_engine")
-    @classmethod
-    def check_option1(cls, value):
-        #Valid options will be placed here
-        corrected_options = []
-        #If a user wants to just use ipinfo they shoudl do a "recon_ip_scan" scan type
-        options = ["abuselpdb", "virustotal", "alienvault"]
-        for element in value:
-            if element in options:
-                corrected_options.append(element)
-
-        if not corrected_options:
-            raise HTTPException(
-                    status_code=422,
-                    detail="The selected scan types do not exist or are invalid"
-                        )
-        else:
-            return corrected_options
-    
-
-class FileRequest(BaseModel):
-    name: str
-    target_hash: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
-    key: str
-    file_id:str = "Not Specified"
-    scan_engine: list
-    @field_validator("scan_engine")
-    @classmethod
-    def scantype_check(cls, value):
-        corrected_options = []
-        options = ["virustotal", "alienvault"]
-        for option in value:
-            if option in options:
-                corrected_options.append(option)
-
-        if not corrected_options:
-            raise HTTPException(
-                status_code=422,
-                detail="No valid engine was specified in the request"
-            )
-        
-        return corrected_options
-        
-class URLRequestLight(BaseModel):
-    name: str
-    key: str
-    url_id: str="Not Specified"
-    target_url: str
-    scan_engine: list
-    @field_validator("scan_engine")
-    @classmethod
-    def check_scan_engine(cls, value):
-        corrected_options = []
-        aval_option = ["virustotal", "alienvault"]
-        for element in value:
-            if element in aval_option:
-                corrected_options.append(element)
-
-        if not corrected_options:
-            raise HTTPException(
-                status_code=422,
-                detail="No valid engine was specified in the request"
-            )
-
-        return corrected_options
-
-class URLRequestHeavy(BaseModel):
-    name: str
-    key: str
-    url_id: str="Not Specified"
-    target_url: str
-
-class DomainRequest(BaseModel):
-    name: str
-    key: str
-    domain_id: str="Not Specified"
-    target_domain: str
-    is_hostname: bool = False
-    scan_engines: list
-    @field_validator("scan_engines")
-    @classmethod
-    def check_scan_engine(cls, value):
-        aval_option = ["alienvault", "virustotal"]
-        corrected_options = []
-        for element in value:
-            if element in aval_option:
-                corrected_options.append(element)
-        
-        if not corrected_options:
-            raise HTTPException(
-                        status_code=422,
-                        detail="No valid engine was specified in the request"
-                    )
-        
-        return corrected_options
+from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,DomainRequest
 
 
 def authorize(username: str, db: Session) -> bool:
@@ -214,6 +97,10 @@ def VTscan(scantype: Literal["domain", "file", "ipaddress", "url"], target: str|
         case "ipaddress":
             VTresult = scan_IP_DOMAIN_VT(target_IP_DOMAIN=target, scan_type="IP")
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="IPaddress", id_detail=id_detail)
+            return VTresult_temp
+        case "domain":
+            VTresult = scan_IP_DOMAIN_VT(target_IP_DOMAIN=target, scan_type="DOMAIN")
+            VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", id_detail=id_detail,scan_type="Domain")
             return VTresult_temp
         case "file":
             VTresult = scan_file_VT(file_hash=target,target_file_name=id_detail)
@@ -351,6 +238,7 @@ def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
                 AVresult = AVscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
                 result.append(AVresult)
             case "virustotal":
+                print("Reached the VT case state")
                 VTresult = VTscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
                 result.append(VTresult)
 
