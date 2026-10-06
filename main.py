@@ -238,7 +238,6 @@ def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
                 AVresult = AVscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
                 result.append(AVresult)
             case "virustotal":
-                print("Reached the VT case state")
                 VTresult = VTscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
                 result.append(VTresult)
 
