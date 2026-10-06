@@ -1,10 +1,11 @@
-from database.db_functions import add_user, delete_user, return_key
+from database.db_functions import add_user, delete_user, return_key, change_user_password, authorize_user, change_user_privilege, list_admin_users
 from database.database import SessionLocal
 import bcrypt
 from database.db_schema import User
 options = ["y", "n"]
 db = SessionLocal()
 abort_opt = "You may input 'quit' to abort"
+
 def authenticate():
     username = input("Username: ")
     password = input("Password: ")
@@ -18,7 +19,7 @@ def authenticate():
     password = password.encode()
     is_auth=bcrypt.checkpw(password=password, hashed_password=password_in_db)
 
-    return True if is_auth is True else False
+    return username if is_auth is True else None
 
 def create_user():
     flag1 = False
@@ -63,7 +64,7 @@ def create_user():
 
     while flag1 is True:
         print(abort_opt)
-        is_priv = input("does this user have administrative privileges?: [y/n]").lower()
+        is_priv = input("does this user have administrative privileges?[y/n]: ").lower()
 
         if is_priv == "quit":
             break
@@ -83,13 +84,13 @@ def create_user():
 
     while flag2 is True:
         print(f"The users credentials are: \nUsername:{prop_username} \nKey:{prop_key} \nis admin: {is_admin}")
-        fin_confirm = input("can you confirm the above credentials?[y/n]:\n").lower()
+        confirm = input("can you confirm the above credentials?[y/n]: ").lower()
 
-        if fin_confirm not in options:
+        if confirm not in options:
             print("Select a valid option!")
             continue
 
-        if fin_confirm == "n":
+        if confirm == "n":
             print("Aborting")
             break
         else:
@@ -125,7 +126,7 @@ def remove_user():
             break
 
     while flag1 is True:
-        confirm = input(f"Can you confirm that the account: {target_user}, is to be deleted?: [y/n]\n").lower()
+        confirm = input(f"Can you confirm that the account: {target_user}, is to be deleted? [y/n]: ").lower()
 
         if confirm not in options:
             print("Select a valid option!")
@@ -144,13 +145,13 @@ def change_password():
     while True:
         flag1 = False
         print(abort_opt)
-        target_user = input("What is the name of the account to have its password changed?:\n")
+        target_username = input("What is the name of the account to have its password changed?:\n")
 
-        if target_user.lower() == "quit":
+        if target_username.lower() == "quit":
             print("Aborting")
             break
 
-        exists = return_key(db=db, username=target_user)
+        exists = return_key(db=db, username=target_username)
 
         if exists is None:
             print('The user doesnt exist')
@@ -161,7 +162,77 @@ def change_password():
 
     while flag1 is True:
         #NOTE: On this part, allow for a new password to be put then create a function in db_functions to update a value
-        ...
+        print(abort_opt)
+        new_password = input("What is the proposed new password?\n:")
+
+        if new_password.lower() == "quit":
+            print("Aborting")
+            break
+
+        confirm = input(f"Can you confirm the new password: {new_password} [y/n]?: ").lower()
+
+        if confirm not in options:
+            print("Select a valid option")
+            continue
+
+        if confirm == "n":
+            continue
+        else:
+            change_user_password(db=db, target_username=target_username, new_password=new_password)
+            print("The users password has been changed")
+            break
+
+def list_administrators():
+    administrators=list_admin_users(db=db)
+    admin_counter = 0
+    for admin in administrators:
+        admin_counter += 1
+        print("The list of admins is as follows")
+        print(f"User ID | Username ")
+        print(f"{admin.user_id}  |  {admin.username}")
+
+    print(f"\nThe number of administrators is: {admin_counter}")
+
+#This function changes the privilages of an account
+def change_priv(logged_in_user:str):
+    flag1 = False
+    while True:
+        print(abort_opt)
+        target_username = input("What is the username of the account to have its privileges changed?\n")
+
+        if target_username == logged_in_user:
+            print("You cant change your own privileges")
+
+        if target_username.lower() == "quit":
+            print("Aborting")
+            break
+
+        exists = return_key(db=db, username=target_username)
+
+        if exists is None:
+            print("The user doesnt exist")
+            continue
+        else:
+            flag1 = True
+            is_admin = authorize_user(db=db, username=target_username)
+            
+            print("The user is an administrator" if is_admin["is_admin"] is True else "This user is not an administrator") # pyright: ignore[reportOptionalSubscript] This error wont occur as it is already checked if the user exists or not
+            break
+
+    while flag1 is True:
+
+        new_priv = input("Should the user have administrative privileges [y/n]").lower()
+
+        if new_priv not in options:
+            print("select a valid option")
+            continue
+        elif new_priv == "n":
+            change_user_privilege(db=db, target_username=target_username, admn_priv=False)
+        else:
+            change_user_privilege(db=db, target_username=target_username, admn_priv=True)
+
+        print("The users administrative privilages have been changed")
+
 def main():
     flag1 = False
     attempts = 0
@@ -180,11 +251,5 @@ def main():
 
 
     while flag1 is True:
-        choice = input("What would you like to do?\n")
-
-
-    
-
-
-    
+        choice = input("What would you like to do?")
 
