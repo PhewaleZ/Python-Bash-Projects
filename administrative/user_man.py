@@ -185,10 +185,10 @@ def change_password():
 def list_administrators():
     administrators=list_admin_users(db=db)
     admin_counter = 0
+    print("The list of admins is as follows")
+    print(f"User ID | Username ")
     for admin in administrators:
         admin_counter += 1
-        print("The list of admins is as follows")
-        print(f"User ID | Username ")
         print(f"{admin.user_id}  |  {admin.username}")
 
     print(f"\nThe number of administrators is: {admin_counter}")
@@ -251,5 +251,22 @@ def main():
 
 
     while flag1 is True:
-        choice = input("What would you like to do?")
+        try:
+            print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \nInput '0' to exit.")
+            choice = int(input("What would you like to do?"))
+        except ValueError:
+            print("Select a valid number")
+            continue
 
+        match choice:
+            case 1: create_user()
+            case 2: remove_user()
+            case 3: change_password()
+            case 4: list_administrators()
+            case 0: 
+                print("Exiting")
+                break
+            case _: print("Select a valid choice")
+
+if __name__ == "__main__":
+    main()
