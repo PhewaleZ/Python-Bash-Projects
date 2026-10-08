@@ -52,10 +52,12 @@ def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple[
                             return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
                         case _:
                             last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                            sleep(5)
                             continue
             
                 except requests.exceptions.RequestException as e:
                     last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
+                    sleep(5)
                     continue
         
                 else:
