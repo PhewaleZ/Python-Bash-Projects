@@ -1,12 +1,22 @@
-from database.db_functions import add_user, delete_user, return_key, change_user_password, authorize_user, change_user_privilege, list_admin_users
-from database.database import SessionLocal
 import bcrypt
 from database.db_schema import User
+from database.db_functions import add_user, delete_user, return_key, change_user_password, authorize_user, change_user_privilege, list_admin_users
+from database.database import SessionLocal
+
 options = ["y", "n"]
 db = SessionLocal()
 abort_opt = "You may input 'quit' to abort"
 
-def authenticate():
+def hash_password(password):
+    byte_prop_key = password.encode()
+    salt = bcrypt.gensalt()
+    key = bcrypt.hashpw(password=byte_prop_key, salt=salt)
+    key = key.decode()
+
+    return key
+
+#This function returns a tuple, if the users account exists then regardless of their authorization, a boolean stating if they have admin privilege is returns and the second index is their username
+def authenticate_authorize():
     username = input("Username: ")
     password = input("Password: ")
 
@@ -17,9 +27,20 @@ def authenticate():
         password_in_db = result["user_key"].encode()
 
     password = password.encode()
-    is_auth=bcrypt.checkpw(password=password, hashed_password=password_in_db)
+    is_authenticated = bcrypt.checkpw(password=password, hashed_password=password_in_db)
 
-    return username if is_auth is True else None
+    if is_authenticated is False:
+        return False, None
+
+    is_authorized = authorize_user(db=db, username=username)
+
+    assert is_authorized is not None
+
+    if is_authorized["is_admin"] is False:
+        print("This user does not have adaquate authorization")
+        return False, username
+    else:
+        return True, username
 
 def create_user():
     flag1 = False
@@ -56,10 +77,7 @@ def create_user():
             continue
         else:
             flag1 = True
-            byte_prop_key = prop_key.encode()
-            salt = bcrypt.gensalt()
-            key = bcrypt.hashpw(password=byte_prop_key, salt=salt)
-            key = key.decode()
+            key = hash_password(password=prop_key)
             break
 
     while flag1 is True:
@@ -178,13 +196,15 @@ def change_password():
         if confirm == "n":
             continue
         else:
-            change_user_password(db=db, target_username=target_username, new_password=new_password)
+            hashed_key = hash_password(password=new_password)
+            change_user_password(db=db, target_username=target_username, new_password=hashed_key)
             print("The users password has been changed")
             break
 
 def list_administrators():
     administrators=list_admin_users(db=db)
     admin_counter = 0
+    print(f"### {administrators} ###")
     print("The list of admins is as follows")
     print(f"User ID | Username ")
     for admin in administrators:
@@ -236,24 +256,31 @@ def change_priv(logged_in_user:str):
 def main():
     flag1 = False
     attempts = 0
-    while flag1 is False:
+    logged_in_user = ""
+    while True:
         if attempts == 3:
             print("You have exceeded the maximum allowed number of attempts")
             break
 
-        is_auth = authenticate()
+        is_allowed = authenticate_authorize()
 
-        if is_auth is False:
+        if is_allowed is False:
             print("You have not presented the adaquate credentials")
+            #NOTE: in the future, logging will be implemented therefore storing the failed log in attempt will be userful
+            logged_in_user = is_allowed[1]
             attempts += 1
         else:
+            logged_in_user = is_allowed[1]
             flag1 = True
+            break
 
-
+        
     while flag1 is True:
+        #This point of the code will not be reached unless the user is authenticated and autorized
+        assert logged_in_user is not None
         try:
             print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \nInput '0' to exit.")
-            choice = int(input("What would you like to do?"))
+            choice = int(input("What would you like to do?: "))
         except ValueError:
             print("Select a valid number")
             continue
@@ -262,7 +289,8 @@ def main():
             case 1: create_user()
             case 2: remove_user()
             case 3: change_password()
-            case 4: list_administrators()
+            case 4: change_priv(logged_in_user=logged_in_user)
+            case 5: list_administrators()
             case 0: 
                 print("Exiting")
                 break
