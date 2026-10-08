@@ -204,7 +204,6 @@ def change_password():
 def list_administrators():
     administrators=list_admin_users(db=db)
     admin_counter = 0
-    print(f"### {administrators} ###")
     print("The list of admins is as follows")
     print(f"User ID | Username ")
     for admin in administrators:
