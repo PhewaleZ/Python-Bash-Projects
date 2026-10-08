@@ -35,18 +35,18 @@ def delete_user(db: Session, target_username: str):
 
 
 def change_user_password(db: Session, target_username: str, new_password: str):
-    query = update(User.user_key).where(User.username == target_username).values(user_key=new_password)
+    query = update(User).where(User.username == target_username).values(user_key=new_password)
     db.execute(query)
     db.commit()
 
 def change_user_privilege(db:Session, target_username: str, admn_priv: bool):
-    query = update(User.is_admin).where(User.username == target_username).values(is_admin=admn_priv)
+    query = update(User).where(User.username == target_username).values(is_admin=admn_priv)
     db.execute(query)
     db.commit()
 
 def list_admin_users(db:Session):
     query = db.query(User.username, User.user_id).where(User.is_admin == True)
     result = db.execute(query)
-    list_of_users = result.scalars().all()
+    list_of_users = result.all()
 
     return list_of_users
