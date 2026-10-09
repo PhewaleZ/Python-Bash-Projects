@@ -51,13 +51,18 @@ def create_user():
     prop_key = ""
     while True:
         print(abort_opt)
-        prop_username = input("What is the proposed username of the user?\n").lower()
+        print("Usernames will have white space removed automatically")
+        prop_username = input("What is the proposed username of the user?\n").lower().strip()
         #The return key function is used as if None is returned by the func, then the username doesnt exist
 
         if prop_username == "quit":
             print("Aborting")
             break
 
+        if len(prop_username) > 16:
+            print("This username length exceeds the maximum of 16")
+            continue
+        
         exists=return_key(db=db, username=prop_username)
 
         if exists is not None:
