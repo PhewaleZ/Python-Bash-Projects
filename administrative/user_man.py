@@ -47,15 +47,14 @@ def create_user():
     flag2 = False
     flag3 = False
     is_admin = False
-    db = SessionLocal()
     key = ""
     prop_key = ""
     while True:
         print(abort_opt)
-        prop_username = input("What is the proposed username of the user?\n")
+        prop_username = input("What is the proposed username of the user?\n").lower()
         #The return key function is used as if None is returned by the func, then the username doesnt exist
 
-        if prop_username.lower() == "quit":
+        if prop_username == "quit":
             print("Aborting")
             break
 
@@ -101,6 +100,7 @@ def create_user():
         break
 
     while flag2 is True:
+        print("NOTE: The username field will always be set to lowercase")
         print(f"The users credentials are: \nUsername:{prop_username} \nKey:{prop_key} \nis admin: {is_admin}")
         confirm = input("can you confirm the above credentials?[y/n]: ").lower()
 
@@ -204,7 +204,7 @@ def change_password():
 def list_administrators():
     administrators=list_admin_users(db=db)
     admin_counter = 0
-    print("The list of admins is as follows")
+    print("The list of admins is as follows:")
     print(f"User ID | Username ")
     for admin in administrators:
         admin_counter += 1
@@ -221,6 +221,7 @@ def change_priv(logged_in_user:str):
 
         if target_username == logged_in_user:
             print("You cant change your own privileges")
+            break
 
         if target_username.lower() == "quit":
             print("Aborting")
@@ -239,8 +240,12 @@ def change_priv(logged_in_user:str):
             break
 
     while flag1 is True:
+        print(abort_opt)
+        new_priv = input("Should the user have administrative privileges [y/n]: ").lower()
 
-        new_priv = input("Should the user have administrative privileges [y/n]").lower()
+        if new_priv == "quit":
+            print("Aborting")
+            break
 
         if new_priv not in options:
             print("select a valid option")
@@ -251,6 +256,7 @@ def change_priv(logged_in_user:str):
             change_user_privilege(db=db, target_username=target_username, admn_priv=True)
 
         print("The users administrative privilages have been changed")
+        break
 
 def main():
     flag1 = False
@@ -263,7 +269,7 @@ def main():
 
         is_allowed = authenticate_authorize()
 
-        if is_allowed is False:
+        if is_allowed[0] is False:
             print("You have not presented the adaquate credentials")
             #NOTE: in the future, logging will be implemented therefore storing the failed log in attempt will be userful
             logged_in_user = is_allowed[1]
