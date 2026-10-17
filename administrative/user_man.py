@@ -1,7 +1,8 @@
 import bcrypt
 from database.db_schema import User
-from database.db_functions import add_user, delete_user, return_key, change_user_password, authorize_user, change_user_privilege, list_admin_users
+from database.db_functions import add_user, delete_user, return_key, change_user_password, authorize_user, change_user_privilege, list_admin_users, return_user_id
 from database.database import SessionLocal
+from .logging import create_log
 
 options = ["y", "n"]
 db = SessionLocal()
@@ -127,7 +128,10 @@ def create_user():
                         is_admin = is_admin)
         add_user(db=db, user_obj=new_user)
         print("The new user has been added")
-        break
+
+        return True, prop_username
+
+    return False, ""
 
 def remove_user():
     flag1 = False
@@ -296,7 +300,10 @@ def main():
             continue
 
         match choice:
-            case 1: create_user()
+            case 1: 
+                confirmation = create_user()
+                if confirmation[0] is True:
+                    create_log(log_type="administrative", log_detail="new_user", data=confirmation[1], subject_name=logged_in_user, subject_id=return_user_id(db=db, target_username=logged_in_user), db=db)
             case 2: remove_user()
             case 3: change_password()
             case 4: change_priv(logged_in_user=logged_in_user)
