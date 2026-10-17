@@ -1,4 +1,4 @@
-from .db_schema import User
+from .db_schema import User, Log
 from sqlalchemy.orm import Session
 from sqlalchemy import delete, update
 
@@ -50,3 +50,15 @@ def list_admin_users(db:Session):
     list_of_users = result.all()
 
     return list_of_users
+
+def return_user_id(db:Session, target_username: str):
+    query = db.query(User.user_id).where(User.username == target_username)
+    result = db.execute(query)
+    result = result.scalar_one()
+
+    return result
+
+def record_log(db:Session, log_obj: Log):
+    db.add(log_obj)
+    db.commit()
+    db.refresh(log_obj)
