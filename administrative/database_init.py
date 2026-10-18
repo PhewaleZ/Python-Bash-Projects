@@ -1,4 +1,4 @@
-from database.db_schema import User,Base
+from database.db_schema import User,Base,Log
 import bcrypt
 from database.database import SessionLocal, engine
 
