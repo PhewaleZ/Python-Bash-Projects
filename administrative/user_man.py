@@ -22,10 +22,10 @@ def authenticate_authorize():
     password = input("Password: ")
 
     result = return_key(db=db, username=username)
-    if result is None:
-        password_in_db = "dummy".encode()
-    else:
+    if result is not None:
         password_in_db = result["user_key"].encode()
+    else:
+        return False,None
 
     password = password.encode()
     is_authenticated = bcrypt.checkpw(password=password, hashed_password=password_in_db)
@@ -120,7 +120,6 @@ def create_user():
         else:
             flag3 = True
             break
-        #The final step is to write to the database
 
     while flag3 is True:
         new_user = User(username = prop_username,
@@ -141,7 +140,7 @@ def remove_user():
 
         if target_user.lower() == "quit":
             print("Aborting")
-            break
+            return False, ""
 
         exists = return_key(db=db, username=target_user)
 
@@ -161,12 +160,13 @@ def remove_user():
 
         if confirm == "n":
             print("Aborting")
-            break
+            return False, ""
         else:
             delete_user(db=db, target_username=target_user)
             print("The user has been deleted")
+            return True, target_user
 
-        break
+    return False, ""
 
 def change_password():
     while True:
@@ -176,7 +176,7 @@ def change_password():
 
         if target_username.lower() == "quit":
             print("Aborting")
-            break
+            return False, ""
 
         exists = return_key(db=db, username=target_username)
 
@@ -194,7 +194,7 @@ def change_password():
 
         if new_password.lower() == "quit":
             print("Aborting")
-            break
+            return False, ""
 
         confirm = input(f"Can you confirm the new password: {new_password} [y/n]?: ").lower()
 
@@ -203,12 +203,14 @@ def change_password():
             continue
 
         if confirm == "n":
+            print("Aborting")
             continue
         else:
             hashed_key = hash_password(password=new_password)
             change_user_password(db=db, target_username=target_username, new_password=hashed_key)
             print("The users password has been changed")
-            break
+            return True, target_username
+    return False, ""
 
 def list_administrators():
     administrators=list_admin_users(db=db)
@@ -224,6 +226,7 @@ def list_administrators():
 #This function changes the privilages of an account
 def change_priv(logged_in_user:str):
     flag1 = False
+    is_up_priv = False
     while True:
         print(abort_opt)
         target_username = input("What is the username of the account to have its privileges changed?\n")
@@ -234,7 +237,7 @@ def change_priv(logged_in_user:str):
 
         if target_username.lower() == "quit":
             print("Aborting")
-            break
+            return False, ""
 
         exists = return_key(db=db, username=target_username)
 
@@ -244,8 +247,10 @@ def change_priv(logged_in_user:str):
         else:
             flag1 = True
             is_admin = authorize_user(db=db, username=target_username)
+
+            assert is_admin is not None
             
-            print("The user is an administrator" if is_admin["is_admin"] is True else "This user is not an administrator") # pyright: ignore[reportOptionalSubscript] This error wont occur as it is already checked if the user exists or not
+            print("The user is an administrator" if is_admin["is_admin"] is True else "This user is not an administrator")
             break
 
     while flag1 is True:
@@ -254,18 +259,22 @@ def change_priv(logged_in_user:str):
 
         if new_priv == "quit":
             print("Aborting")
-            break
+            return False, ""
 
         if new_priv not in options:
             print("select a valid option")
             continue
         elif new_priv == "n":
+            is_up_priv = False
             change_user_privilege(db=db, target_username=target_username, admn_priv=False)
         else:
+            is_up_priv = True
             change_user_privilege(db=db, target_username=target_username, admn_priv=True)
 
-        print("The users administrative privilages have been changed")
-        break
+        print("The users administrative privileges have been changed")
+        return True, target_username, is_up_priv
+    
+    return False, ""
 
 def main():
     flag1 = False
@@ -290,8 +299,10 @@ def main():
 
         
     while flag1 is True:
-        #This point of the code will not be reached unless the user is authenticated and autorized
         assert logged_in_user is not None
+
+        logged_in_user_id = return_user_id(db=db, target_username=logged_in_user)
+        #This point of the code will not be reached unless the user is authenticated and autorized
         try:
             print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \nInput '0' to exit.")
             choice = int(input("What would you like to do?: "))
@@ -303,10 +314,25 @@ def main():
             case 1: 
                 confirmation = create_user()
                 if confirmation[0] is True:
-                    create_log(log_type="administrative", log_detail="new_user", data=confirmation[1], subject_name=logged_in_user, subject_id=return_user_id(db=db, target_username=logged_in_user), db=db)
-            case 2: remove_user()
-            case 3: change_password()
-            case 4: change_priv(logged_in_user=logged_in_user)
+                    create_log(log_type="administrative", log_detail="new_user", data=confirmation[1], subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+            case 2: 
+                confirmation = remove_user()
+                if confirmation[0] is True:
+                    create_log(log_type="administrative", log_detail="deleted_user", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+
+            case 3: 
+                confirmation = change_password()
+                if confirmation[0] is True:
+                    create_log(log_type="administrative", log_detail="password_change", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+
+            case 4: 
+                confirmation = change_priv(logged_in_user=logged_in_user)
+                if confirmation[0] is True:
+                    if confirmation[2] is True:
+                        create_log(log_type="administrative", log_detail="up_priv", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+                    else:
+                        create_log(log_type="administrative", log_detail="down_priv", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+            
             case 5: list_administrators()
             case 0: 
                 print("Exiting")
