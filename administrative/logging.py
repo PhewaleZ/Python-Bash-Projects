@@ -1,8 +1,8 @@
 from typing import Literal
-from ..database.db_schema import Log
-from ..database.db_functions import record_log
+from database.db_schema import Log
+from database.db_functions import record_log
 
-def admin_log(data, detail: Literal["new_user", "password_change", "up_priv", "down_priv"], subject_name):
+def admin_log(data, detail: Literal["new_user", "password_change", "up_priv", "down_priv", "deleted_user"], subject_name):
     match detail:
         case "new_user":
             log = {"Data": {
@@ -24,10 +24,15 @@ def admin_log(data, detail: Literal["new_user", "password_change", "up_priv", "d
                     "Effect": f"A user has lost administrative privileges: {data}",
                     "Done_by": subject_name
             }}
-        
+        case "deleted_user":
+            log = {"Data": {
+                                "Effect": f"A user has been deleted: {data}",
+                                "Done_by": subject_name
+                        }}
+    return log
 
 
-def create_log(log_type: Literal["administrative", "scan_result"], log_detail: Literal["new_user","password_change", "up_priv", "down_priv"], data, subject_name: str, subject_id: str, db):
+def create_log(log_type: Literal["administrative", "scan_result"], log_detail: Literal["new_user","password_change", "up_priv", "down_priv", "deleted_user"], data, subject_name: str, subject_id: str, db):
     log_dict = {}
     match log_type:
         case "administrative": 
