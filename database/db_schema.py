@@ -2,6 +2,7 @@ from sqlalchemy import String, ForeignKey, DateTime, func
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from uuid6 import uuid7
 
 class Base(DeclarativeBase):
@@ -18,7 +19,7 @@ class User(Base):
     )
 
     user_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True),
+        PG_UUID(as_uuid=True),
         primary_key=True,
         default=uuid7
     )
@@ -47,6 +48,14 @@ class Log(Base):
         nullable=False
     )
 
-    data: Mapped[JSONB] = mapped_column(
-        nullable=None
+    data: Mapped[dict] = mapped_column(
+        JSONB,
+        nullable=False
     )
+
+    log_id: Mapped[UUID] = mapped_column(
+    PG_UUID(as_uuid=True),
+    primary_key=True,
+    default=uuid7,
+    nullable=False
+)
