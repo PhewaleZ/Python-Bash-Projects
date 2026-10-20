@@ -2,7 +2,8 @@ import bcrypt
 from database.db_schema import User
 from database.db_functions import add_user, delete_user, return_key, change_user_password, authorize_user, change_user_privilege, list_admin_users, return_user_id
 from database.database import SessionLocal
-from .logging import create_log
+from .logging import create_log, export_logs
+import json
 
 options = ["y", "n"]
 db = SessionLocal()
@@ -25,12 +26,13 @@ def authenticate_authorize():
     if result is not None:
         password_in_db = result["user_key"].encode()
     else:
-        return False,None
+        password_in_db = "dummy".encode()
 
     password = password.encode()
     is_authenticated = bcrypt.checkpw(password=password, hashed_password=password_in_db)
 
     if is_authenticated is False:
+        print("The credentials provided are incorrect")
         return False, None
 
     is_authorized = authorize_user(db=db, username=username)
@@ -288,7 +290,6 @@ def main():
         is_allowed = authenticate_authorize()
 
         if is_allowed[0] is False:
-            print("You have not presented the adaquate credentials")
             #NOTE: in the future, logging will be implemented therefore storing the failed log in attempt will be userful
             logged_in_user = is_allowed[1]
             attempts += 1
@@ -304,7 +305,7 @@ def main():
         logged_in_user_id = return_user_id(db=db, target_username=logged_in_user)
         #This point of the code will not be reached unless the user is authenticated and autorized
         try:
-            print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \nInput '0' to exit.")
+            print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. retrieve all logs \nInput '0' to exit.")
             choice = int(input("What would you like to do?: "))
         except ValueError:
             print("Select a valid number")
@@ -334,6 +335,17 @@ def main():
                         create_log(log_type="administrative", log_detail="down_priv", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
             
             case 5: list_administrators()
+            case 6:
+                logs = export_logs(retrieve_all=True,db=db)
+                if logs is None:
+                    with open("testing_logs.json", "w") as file:
+                        json.dump(obj={"error":"No logs"}, fp=file, indent=4)
+                else:
+                    with open("testing_logs.json", "w") as file:
+                        json.dump(obj=logs, fp=file, indent=4)
+
+                print("All logs have been exported")
+
             case 0: 
                 print("Exiting")
                 break
