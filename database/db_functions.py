@@ -62,3 +62,11 @@ def record_log(db:Session, log_obj: Log):
     db.add(log_obj)
     db.commit()
     db.refresh(log_obj)
+
+def retrieve_all_logs(db:Session):
+    query = db.query(Log.data, Log.timestamp, Log.user_id, Log.log_id)
+    result = db.execute(query)
+    result = result.mappings().all()
+
+    return result
+
