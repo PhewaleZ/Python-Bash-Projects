@@ -1,0 +1,46 @@
+[
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "New account created with name: ian",
+                "Done_by": "phewale"
+            }
+        },
+        "created_at": "2026-10-18T11:15:04.058048+02:00",
+        "log_subjectid": "01a04e18-703f-74a2-96b3-bfe1f6750c65",
+        "log_id": "01a14e4b-0e0b-79f8-b64b-bb5d364b807e"
+    },
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "A user has lost administrative privileges: ian",
+                "Done_by": "phewale"
+            }
+        },
+        "created_at": "2026-10-18T11:39:32.952753+02:00",
+        "log_subjectid": "01a04e18-703f-74a2-96b3-bfe1f6750c65",
+        "log_id": "01a14e61-77d8-718b-a57a-ef87376da7b3"
+    },
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "A user has been deleted: ian",
+                "Done_by": "phewale"
+            }
+        },
+        "created_at": "2026-10-18T11:39:46.417032+02:00",
+        "log_subjectid": "01a04e18-703f-74a2-96b3-bfe1f6750c65",
+        "log_id": "01a14e61-ac70-7f27-8fa3-5e130bf1acc7"
+    },
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "New account created with name: joseph",
+                "Done_by": "kaylee"
+            }
+        },
+        "created_at": "2026-10-18T11:40:26.901142+02:00",
+        "log_subjectid": "01a12130-31db-7258-a3d1-54da272130e5",
+        "log_id": "01a14e62-4a9a-7419-b9ac-6e38ddcc0019"
+    }
+]
