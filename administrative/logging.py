@@ -1,6 +1,6 @@
 from typing import Literal
 from database.db_schema import Log
-from database.db_functions import record_log
+from database.db_functions import record_log, retrieve_all_logs
 
 def admin_log(data, detail: Literal["new_user", "password_change", "up_priv", "down_priv", "deleted_user"], subject_name):
     match detail:
@@ -43,3 +43,17 @@ def create_log(log_type: Literal["administrative", "scan_result"], log_detail: L
     log_obj = Log(user_id=subject_id, data=log_dict)
     record_log(db=db, log_obj=log_obj)
     
+def export_logs(retrieve_all: bool, db):
+
+    if retrieve_all is True:
+        all_logs = retrieve_all_logs(db=db)
+        all_logs = [
+    {
+        "log_detail": row["data"],
+        "created_at": row["timestamp"].isoformat(),
+        "log_subjectid": str(row["user_id"]),
+        "log_id": str(row["log_id"])
+    }
+    for row in all_logs
+]
+        return all_logs
