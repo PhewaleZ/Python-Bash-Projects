@@ -100,7 +100,7 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Ad
         warning.append("Large number of engines queried by VT's API failed to scan")
 
     formatted_response = {
-        'target': target_name,
+        'target': str(target_name),
         'warnings': warning,
         'details':{
             "level3":{
