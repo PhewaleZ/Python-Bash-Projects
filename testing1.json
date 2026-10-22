@@ -2,25 +2,25 @@
     "results": [
         {
             "Result": {
-                "id": "Not Specified",
+                "id": "This is a test of logging functionality",
                 "service": "Virustotal",
-                "scan_type": "Domain",
+                "scan_type": "IPaddress",
                 "Status": "Successful",
                 "Data": {
-                    "target": "google.com",
+                    "target": "1.1.1.1",
                     "warnings": [],
                     "details": {
                         "level3": {
-                            "count": 28,
-                            "ratio": 0.31
+                            "count": 35,
+                            "ratio": 0.38
                         },
                         "level2": {
-                            "count": 61,
-                            "ratio": 0.67
+                            "count": 57,
+                            "ratio": 0.62
                         },
                         "level1": {
-                            "count": 2,
-                            "ratio": 0.02
+                            "count": 0,
+                            "ratio": 0.0
                         }
                     }
                 }
