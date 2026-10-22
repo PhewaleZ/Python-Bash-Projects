@@ -31,14 +31,23 @@ def admin_log(data, detail: Literal["new_user", "password_change", "up_priv", "d
                         }}
     return log
 
+def scan_log(subject_name, scan_result: dict):
+    log = {"Data": {
+        "Effect": f"A scan has been done",
+        "Done_by": subject_name,
+        "Scan_data": scan_result
+                }}
 
-def create_log(log_type: Literal["administrative", "scan_result"], log_detail: Literal["new_user","password_change", "up_priv", "down_priv", "deleted_user"], data, subject_name: str, subject_id: str, db):
+    return log
+
+def create_log(log_type: Literal["administrative", "scan_result"], log_detail: Literal["new_user","password_change", "up_priv", "down_priv", "deleted_user", "standard_scan"], subject_name: str, subject_id: str, db,scan_result = [], admin_data = ""):
     log_dict = {}
     match log_type:
         case "administrative": 
-            log_dict = admin_log(data=data, subject_name=subject_name, detail=log_detail)
-        case "scan_result": ... #NOTE : Dont forget to implement this
+            log_dict = admin_log(data=admin_data, subject_name=subject_name, detail=log_detail) # pyright: ignore[reportArgumentType] This error will not occur
 
+        case "scan_result":
+            log_dict = scan_log( subject_name=subject_name, scan_result=scan_result)
 
     log_obj = Log(user_id=subject_id, data=log_dict)
     record_log(db=db, log_obj=log_obj)

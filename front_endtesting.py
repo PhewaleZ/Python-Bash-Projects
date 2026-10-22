@@ -14,15 +14,15 @@ def main():
     target_hash = hashlib.sha256(b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*").hexdigest()
 
     json_dict = {
-        "name": "Phewale",
+        "name": "phewale",
         "key": "phewale",
-        "scan_type" :"nothing",
-        "target_domain": "google.com",
-        "scan_engines": ["virustotal"]
+        "target_ip": "1.1.1.1",
+        "ip_id": "This is a test of logging functionality",
+        "scan_engine": ["virustotal"]
     }
 
     try:
-        rec_response = make_request(target_endpoint="domainscans", le_dict=json_dict)
+        rec_response = make_request(target_endpoint="ipscans", le_dict=json_dict)
         print(f"The http status is: {rec_response.status_code}, information is: {rec_response.reason}")
 
         with open("testing1.json", "w") as file:
