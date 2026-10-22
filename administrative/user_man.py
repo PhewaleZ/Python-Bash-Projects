@@ -315,25 +315,25 @@ def main():
             case 1: 
                 confirmation = create_user()
                 if confirmation[0] is True:
-                    create_log(log_type="administrative", log_detail="new_user", data=confirmation[1], subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+                    create_log(log_type="administrative", log_detail="new_user", admin_data=confirmation[1], subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
             case 2: 
                 confirmation = remove_user()
                 if confirmation[0] is True:
-                    create_log(log_type="administrative", log_detail="deleted_user", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+                    create_log(log_type="administrative", log_detail="deleted_user", admin_data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
 
             case 3: 
                 confirmation = change_password()
                 if confirmation[0] is True:
-                    create_log(log_type="administrative", log_detail="password_change", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+                    create_log(log_type="administrative", log_detail="password_change", admin_data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
 
             case 4: 
                 confirmation = change_priv(logged_in_user=logged_in_user)
                 if confirmation[0] is True:
                     if confirmation[2] is True:
-                        create_log(log_type="administrative", log_detail="up_priv", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+                        create_log(log_type="administrative", log_detail="up_priv", admin_data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
                     else:
-                        create_log(log_type="administrative", log_detail="down_priv", data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
-            
+                        create_log(log_type="administrative", log_detail="down_priv", admin_data=confirmation[1],subject_name=logged_in_user, subject_id=logged_in_user_id, db=db)
+
             case 5: list_administrators()
             case 6:
                 logs = export_logs(retrieve_all=True,db=db)
