@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends,HTTPException
 import bcrypt
-from database.db_functions import return_key,authorize_user
+from database.db_functions import return_key,authorize_user, return_user_id
 from database.database import get_db
 from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
@@ -10,7 +10,7 @@ from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV, scan_domai
 from services.abuselpdb import scan_ip_APDB
 from typing import Literal
 from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,DomainRequest
-
+from administrative.logging import create_log
 
 def authorize(username: str, db: Session) -> bool:
     check = authorize_user(db=db, username=username)
@@ -159,9 +159,11 @@ api = FastAPI(
 
 @api.post("/ipscans")
 def scanip(request: IPRequest, db:Session = Depends(get_db)):
+    print(f"The request looks like {request}")
     is_admin = False
-
     authenticate(request=request, db=db)
+    
+    user_id = return_user_id(db=db, target_username=request.name)
 
     if authorize(username=request.name, db=db) is True:
         is_admin = True
@@ -169,6 +171,7 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
     if request.scan_type == "custom":
         results = []
         for service in request.scan_engine:
+            print("It is matching the services now")
             match service:
                 case "abuselpdb":
                     ABPDBresult = ABPDBscan(target=request.target_ip, age=request.report_age, id_detail=request.ip_id)
@@ -182,15 +185,21 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
                     AVresult = AVscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
                     results.append(AVresult)
 
+        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+
         return {"results": results}
     else:
-        return ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.report_age)  # type: ignore
+        results = ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.report_age)  # type: ignore
+        
+        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+
+        return results
 
 @api.post("/filescans")
 def scanfile(request: FileRequest, db:Session = Depends(get_db)):
     results = []
     authenticate(request=request, db=db)
-
+    user_id = return_user_id(db=db, target_username=request.name)
     for option in request.scan_engine:
         match option:
             case "virustotal":
@@ -200,13 +209,16 @@ def scanfile(request: FileRequest, db:Session = Depends(get_db)):
                 AVresult = AVscan(scantype="file", target=request.target_hash, id_detail=request.file_id)
                 results.append(AVresult)
 
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+    
     return {"results": results}
 
 @api.post("/urlscans/lightscans")
 def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
     results = []
-
     authenticate(request=request, db=db)
+
+    user_id = return_user_id(db=db, target_username=request.name)
 
     for option in request.scan_engine:
         match option:
@@ -217,13 +229,19 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
                 AVresult = AVscan(scantype="url_light", target=request.target_url, id_detail=request.url_id)
                 results.append(AVresult)
 
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+
     return {"results": results}
 
 @api.post("/urlscans/heavyscans")
 def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
     authenticate(request=request, db=db)
 
+    user_id = return_user_id(db=db, target_username=request.name)
+
     AVresult = AVscan(scantype="url_heavy", target=request.target_url, id_detail=request.url_id)
+
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=AVresult)
 
     return {"results": AVresult}
 
@@ -231,17 +249,21 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
 def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
     authenticate(request=request, db=db)
 
-    result = []
+    user_id = return_user_id(db=db, target_username=request.name)
+
+    results = []
     for option in request.scan_engines:
         match option:
             case "alienvault":
                 AVresult = AVscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
-                result.append(AVresult)
+                results.append(AVresult)
             case "virustotal":
                 VTresult = VTscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
-                result.append(VTresult)
+                results.append(VTresult)
 
-    return {"results": result}
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+
+    return {"results": results}
             
 
 

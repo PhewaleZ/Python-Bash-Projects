@@ -1,7 +1,9 @@
 .env
 ./testingfile.txt
 .git
-./services/AV_resp_examples
-./services/IP_info_resp_examples
-./services/VT_resp_examples
+./services/AV_resp_examples/
+./services/IP_info_resp_examples/
+./services/VT_resp_examples/
 ./testing_logs.json
+./testing1.json
+./front_endtesting.py

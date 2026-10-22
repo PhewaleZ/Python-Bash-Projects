@@ -3,7 +3,7 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import HTTPException
 class IPRequest(BaseModel):
     name: str
-    scan_type: str
+    scan_type: str = "custom"
     target_ip: IPv4Address | IPv6Address
     key: str
     ip_id: str = "Not Specified"
