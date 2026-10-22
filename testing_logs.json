@@ -42,5 +42,68 @@
         "created_at": "2026-10-18T11:40:26.901142+02:00",
         "log_subjectid": "01a12130-31db-7258-a3d1-54da272130e5",
         "log_id": "01a14e62-4a9a-7419-b9ac-6e38ddcc0019"
+    },
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "A scan has been done",
+                "Done_by": "phewale",
+                "Scan_data": []
+            }
+        },
+        "created_at": "2026-10-22T14:30:50.943461+02:00",
+        "log_subjectid": "01a04e18-703f-74a2-96b3-bfe1f6750c65",
+        "log_id": "01a16397-be11-78ad-81a3-43f7a5c191df"
+    },
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "A scan has been done",
+                "Done_by": "phewale",
+                "Scan_data": []
+            }
+        },
+        "created_at": "2026-10-22T14:33:33.372721+02:00",
+        "log_subjectid": "01a04e18-703f-74a2-96b3-bfe1f6750c65",
+        "log_id": "01a1639a-3a02-7fc5-be2c-1fa9373be395"
+    },
+    {
+        "log_detail": {
+            "Data": {
+                "Effect": "A scan has been done",
+                "Done_by": "phewale",
+                "Scan_data": [
+                    {
+                        "Result": {
+                            "id": "This is a test of logging functionality",
+                            "Data": {
+                                "target": "1.1.1.1",
+                                "details": {
+                                    "level1": {
+                                        "count": 0,
+                                        "ratio": 0.0
+                                    },
+                                    "level2": {
+                                        "count": 57,
+                                        "ratio": 0.62
+                                    },
+                                    "level3": {
+                                        "count": 35,
+                                        "ratio": 0.38
+                                    }
+                                },
+                                "warnings": []
+                            },
+                            "Status": "Successful",
+                            "service": "Virustotal",
+                            "scan_type": "IPaddress"
+                        }
+                    }
+                ]
+            }
+        },
+        "created_at": "2026-10-22T14:38:46.708353+02:00",
+        "log_subjectid": "01a04e18-703f-74a2-96b3-bfe1f6750c65",
+        "log_id": "01a1639f-056c-7d90-a418-1fded76d235e"
     }
 ]
