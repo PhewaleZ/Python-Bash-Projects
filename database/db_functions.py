@@ -54,7 +54,7 @@ def list_admin_users(db:Session):
 def return_user_id(db:Session, target_username: str):
     query = db.query(User.user_id).where(User.username == target_username)
     result = db.execute(query)
-    result = result.scalar_one()
+    result = result.scalar_one_or_none()
 
     return result
 
@@ -70,3 +70,9 @@ def retrieve_all_logs(db:Session):
 
     return result
 
+def retrieve_user_logs(db:Session, target_userid):
+    query = db.query(Log.data, Log.timestamp, Log.user_id, Log.log_id).where(Log.user_id == target_userid)
+    result = db.execute(query)
+    result = result.mappings().all()
+
+    return result
