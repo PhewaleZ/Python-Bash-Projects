@@ -58,7 +58,7 @@ def create_user():
         prop_username = input("What is the proposed username of the user?\n").lower().strip()
         #The return key function is used as if None is returned by the func, then the username doesnt exist
 
-        if prop_username == "quit":
+        if prop_username.lower() == "quit":
             print("Aborting")
             break
 
@@ -303,9 +303,10 @@ def main():
         assert logged_in_user is not None
 
         logged_in_user_id = return_user_id(db=db, target_username=logged_in_user)
+        assert logged_in_user_id is not None
         #This point of the code will not be reached unless the user is authenticated and autorized
         try:
-            print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. retrieve all logs \nInput '0' to exit.")
+            print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. retrieve all logs. \n7. retrieve a users logs \nInput '0' to exit.")
             choice = int(input("What would you like to do?: "))
         except ValueError:
             print("Select a valid number")
@@ -337,15 +338,29 @@ def main():
             case 5: list_administrators()
             case 6:
                 logs = export_logs(retrieve_all=True,db=db)
-                if logs is None:
-                    with open("testing_logs.json", "w") as file:
-                        json.dump(obj={"error":"No logs"}, fp=file, indent=4)
-                else:
-                    with open("testing_logs.json", "w") as file:
-                        json.dump(obj=logs, fp=file, indent=4)
+                with open("testing_logs.json", "w") as file:
+                    json.dump(obj=logs, fp=file, indent=4)
 
                 print("All logs have been exported")
 
+            case 7:
+                while True:
+                    print(abort_opt)
+                    target_username = input("What is the username of the user whose logs you want to retrieve: ")
+
+                    if target_username.lower() == "quit": break
+
+                    target_userid = return_user_id(db=db, target_username=target_username)
+                    
+                    if target_userid is None:
+                        print("This user doesnt exist")
+                        continue
+                    else: 
+                        logs = export_logs(db=db, target_userid=target_userid)
+                        with open("testing_userlogs.json", "w") as file:
+                            json.dump(obj=logs, fp=file, indent=4)        
+                            print("All logs have been exported")
+                        
             case 0: 
                 print("Exiting")
                 break
