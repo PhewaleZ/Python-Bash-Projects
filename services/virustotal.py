@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from time import sleep
 from ipaddress import IPv4Address, IPv6Address
-from typing import Literal
+from typing import Literal, Any
 #NOTE: When a scan is done by virustotal and one of the scanning functions are used, take note that a tuple is returned, the first value in the tuple is going to be a boolean to indicate whether the result was successful
 
 #This function is what makes the HTTP request and validates it and returns if it is the intended response or an error
@@ -45,7 +45,8 @@ def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bo
                     continue
 
         except requests.exceptions.RequestException as e:
-            last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
+            assert e.response is not None
+            last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}"
             continue
 
         else:
@@ -56,8 +57,9 @@ def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bo
     
 #NOTE: The scanning ip address VT endpoint accepts both ipv6 and ipv4 addresses
 #The variable scan_type will indicate whether an IP ao domain is being scanned
-def scan_IP_DOMAIN_VT(target_IP_DOMAIN: IPv4Address | IPv6Address| str, scan_type: Literal["DOMAIN", "IP"]) -> tuple[bool, str | dict]:
+def scan_ip_domain_vt(target_IP_DOMAIN: IPv4Address | IPv6Address| str, scan_type: Literal["DOMAIN", "IP"]) -> tuple[bool, str | dict]:
     load_dotenv()
+    url= ''
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
 
     if api_key == None:
@@ -74,25 +76,28 @@ def scan_IP_DOMAIN_VT(target_IP_DOMAIN: IPv4Address | IPv6Address| str, scan_typ
         "x-apikey": api_key
     }
 
-    check = send_request(url=url, headers=headers) #type: ignore the unbound issue will never happen as the scan type will always be "IP" or "DOMAIN" 
+    request_check = send_request(url=url, headers=headers)
 
-    if check[0] is True:
-        virus_total_res = aggregate_virustotal_results_IP_and_DOMAIN(rec_response=check[1], target_name=target_IP_DOMAIN)
+    #NOTE:if the first index is true, then a response.Request was returned, not a string
+    if request_check[0] is True:
+        assert not isinstance(request_check[1], str)
+        virus_total_res = aggregate_vt_results_ip_domain(rec_response=request_check[1], target_name=target_IP_DOMAIN) 
         return (True, virus_total_res)
     else:
-        return (False, check[1]) #type: ignore
+        return (False, request_check[1]) # pyright: ignore[reportReturnType]
 
-#info1 contains the IP address of the target IP address or Domain name
-def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Address|IPv6Address|str) -> dict:
-    warning = []
+def aggregate_vt_results_ip_domain(rec_response: requests.Response, target_name: IPv4Address|IPv6Address|str) -> dict:
+    warning: list[str] = []
 
-    rec_response = rec_response.json()
-    malicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
-    suspicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["suspicious"]
-    undetected_count=rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"]
-    harmless_count=rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]
-    timeout_count=rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
-    total_engines =malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count
+    json_rec_response=rec_response.json()
+    last_analysis_stats= json_rec_response["data"]["attributes"]["last_analysis_stats"]
+
+    malicious_count=(last_analysis_stats["malicious"])
+    suspicious_count=(last_analysis_stats["suspicious"])
+    undetected_count=(last_analysis_stats["undetected"])
+    harmless_count=(last_analysis_stats["harmless"])
+    timeout_count=(last_analysis_stats["timeout"])
+    total_engines =(malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count)
     lvl3_ratio = round(undetected_count/total_engines, ndigits=2)
     lvl2_ratio = round(harmless_count/total_engines, ndigits=2)
     lvl1_ratio = round((malicious_count+suspicious_count)/total_engines, ndigits=2)
@@ -118,12 +123,10 @@ def aggregate_virustotal_results_IP_and_DOMAIN(rec_response, target_name: IPv4Ad
         }
     }
     
-    #NOTE: ADD FUNCTION WHICH PUTS THE DATA INTO THE DATABASE HERE
     return (formatted_response)
 
 
-#It is assumed that the the file will be converted into an sha-256 hash before reaching this file
-def scan_file_VT(file_hash, target_file_name) -> tuple[bool, str|dict]:
+def scan_file_vt(file_hash, target_file_name) -> tuple[bool, str|dict]:
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
@@ -138,31 +141,34 @@ def scan_file_VT(file_hash, target_file_name) -> tuple[bool, str|dict]:
         "accept": "application/json"
     }
 
-    check = send_request(url=url, headers=headers)
-    #If the first index is true then it means the request was successful and the intended response was received
-    #If the first index is false then an error has occured so the second index is te error messaage
-    if check[0] is True:
-        virus_total_res = aggregate_virustotal_results_FILEHASH(rec_response=check[1], target_name=target_file_name)
-        return (True, virus_total_res)
+    request_check = send_request(url=url, headers=headers)
+
+    #NOTE:if the first index is true, then a response.Request was returned, not a string
+    if request_check[0] is True:
+        assert not isinstance(request_check[1], str)
+        virus_total_res = aggregate_vt_results_filehash(rec_response=request_check[1], target_name=target_file_name)
+        return(True, virus_total_res) 
     else:
-        return (False, check[1]) #type: ignore
+        return (False, request_check[1])  # pyright: ignore[reportReturnType]
 
 
-def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict:
-    warning = []
-    rec_response = rec_response.json()
+def aggregate_vt_results_filehash(rec_response: requests.Response,target_name: str) -> dict:
+    warning: list[str] = []
 
-    sigma_stats=rec_response["data"]["attributes"]["sigma_analysis_stats"]
-    sigma_stats_critical=sigma_stats["critical"]
-    sigma_stats_high=sigma_stats["high"]
-    sigma_stats_medium=sigma_stats["medium"]
-    sigma_stats_low=sigma_stats["low"]
-    total_sigma_stats=sigma_stats_critical+sigma_stats_high+sigma_stats_medium+sigma_stats_low
+    json_rec_response = rec_response.json()
+    sigma_stats= json_rec_response["data"]["attributes"]["sigma_analysis_stats"]
+    last_analysis_stats= json_rec_response["data"]["attributes"]["last_analysis_stats"]
+
+    sigma_stats_critical= sigma_stats["critical"]
+    sigma_stats_high= sigma_stats["high"]
+    sigma_stats_medium= sigma_stats["medium"]
+    sigma_stats_low= sigma_stats["low"]
+    total_sigma_stats= sigma_stats_critical+sigma_stats_high+sigma_stats_medium+sigma_stats_low
     if sigma_stats_critical > 0 or (sigma_stats_high+sigma_stats_medium) > total_sigma_stats*0.4:
         warning.append("Strange or abnormal patterns observed in 'sigma statistics'")
 
-    harmless_vote_count= rec_response["data"]["attributes"]["total_votes"]["harmless"]
-    malicious_vote_count= rec_response["data"]["attributes"]["total_votes"]["malicious"]
+    harmless_vote_count= json_rec_response["data"]["attributes"]["total_votes"]["harmless"]
+    malicious_vote_count= json_rec_response["data"]["attributes"]["total_votes"]["malicious"]
     total_vote_engines = harmless_vote_count+malicious_vote_count
     malicious_vote_ratio = round(malicious_vote_count/total_vote_engines, ndigits=2)
     match malicious_vote_ratio:
@@ -175,14 +181,14 @@ def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict
         case _:
             vote_verdict = 'SAFE'
 
-    malicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["malicious"]
-    suspicious_count=rec_response["data"]["attributes"]["last_analysis_stats"]["suspicious"]
-    undetected_count=rec_response["data"]["attributes"]["last_analysis_stats"]["undetected"]
-    harmless_count=rec_response["data"]["attributes"]["last_analysis_stats"]["harmless"]
-    timeout_count=rec_response["data"]["attributes"]["last_analysis_stats"]["timeout"]
-    conf_timeout=rec_response["data"]["attributes"]["last_analysis_stats"]["confirmed-timeout"]
-    failure_count=rec_response["data"]["attributes"]["last_analysis_stats"]["failure"]
-    type_unsupported_count=rec_response["data"]["attributes"]["last_analysis_stats"]["type-unsupported"]
+    malicious_count=last_analysis_stats["malicious"]
+    suspicious_count=last_analysis_stats["suspicious"]
+    undetected_count=last_analysis_stats["undetected"]
+    harmless_count=last_analysis_stats["harmless"]
+    timeout_count=last_analysis_stats["timeout"]
+    conf_timeout=last_analysis_stats["confirmed-timeout"]
+    failure_count=last_analysis_stats["failure"]
+    type_unsupported_count=last_analysis_stats["type-unsupported"]
     total_engines= malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
     lvl3_ratio=round((undetected_count)/total_engines, ndigits=2)
     lvl2_ratio=round((harmless_count+(int(harmless_vote_count*0.003)))/total_engines, ndigits=2)
@@ -216,7 +222,7 @@ def aggregate_virustotal_results_FILEHASH(rec_response,target_name: str) -> dict
 
     return formatted_response
 
-def scan_URL_VT(target_URL):
+def scan_url_vt(target_URL):
     load_dotenv()
 
     api_key = os.getenv("VIRUSTOTALAPI_KEY")
@@ -233,13 +239,15 @@ def scan_URL_VT(target_URL):
         "content-type": "application/x-www-form-urlencoded"
     }
 
-    check = send_request(url=url, headers=headers, is_url=True, payload=payload)
+    request_check = send_request(url=url, headers=headers, is_url=True, payload=payload)
 
-    #This is what will occur if the query fails and nothing else is done
-    if check[0] is False:
-        return (False, f"The request could not be made to Virustotal's API server, LAST KNOWN STATUS IS:{check[1]}")
+    #NOTE:if the first index is true, then a response.Request was returned, not a string
+    if request_check[0] is False:
+        return (False, f"The request could not be made to Virustotal's API server, LAST KNOWN STATUS IS:{request_check[1]}")
+    
     else:
-        ret_result_id = check[1].json() #type: ignore
+        assert not isinstance(request_check[1], str)
+        ret_result_id = request_check[1].json()
         analysis_id = ret_result_id["data"]["id"]
 
     last_status = ''
@@ -251,14 +259,15 @@ def scan_URL_VT(target_URL):
             "accept": "application/json",
             "x-apikey": api_key
         }
-
-        check = send_request(url=url, headers=headers, is_url=False)
-        if check[0] is False:
-            last_status = check[1]
-            sleep(10)
+        #The request_check tuple is overwritten in this new request
+        request_check = send_request(url=url, headers=headers, is_url=False)
+        if request_check[0] is False:
+            last_status = request_check[1]
+            sleep(8)
             continue
         else:
-            response = check[1].json() #type: ignore
+            assert not isinstance(request_check[1], str)
+            response = request_check[1].json() 
 
         status = (
             response.get("data", {}).get("attributes", {}).get("status")
@@ -268,23 +277,25 @@ def scan_URL_VT(target_URL):
             sleep(8)
             continue
         else:
-            virus_total_res = aggregate_virustotal_results_URLSCAN(rec_response=response, target_name=target_URL)
+            virus_total_res = aggregate_vt_results_urlscan(rec_response=response, target_name=target_URL)
             return (True, virus_total_res)
     
     return (False, f'The api took too long do return a finished response, LAST KNOWN STATUS IS {last_status}')
     
 #info1 stores the url which was scanned
-def aggregate_virustotal_results_URLSCAN(rec_response, target_name: str) -> dict:
-    warning = []
+def aggregate_vt_results_urlscan(rec_response: requests.Response, target_name: str) -> dict:
+    warning: list[str] = []
+    json_rec_response = rec_response.json()
+    stats = json_rec_response["data"]["attributes"]["stats"]
 
-    malicious_count=rec_response["data"]["attributes"]["stats"]["malicious"]
-    suspicious_count=rec_response["data"]["attributes"]["stats"]["suspicious"]
-    undetected_count=rec_response["data"]["attributes"]["stats"]["undetected"]
-    harmless_count=rec_response["data"]["attributes"]["stats"]["harmless"]
-    timeout_count=rec_response["data"]["attributes"]["stats"]["timeout"]
-    conf_timeout=rec_response["data"]["attributes"]["stats"]["confirmed_timeout"]
-    failure_count=rec_response["data"]["attributes"]["stats"]["failure"]
-    type_unsupported_count=rec_response["data"]["attributes"]["stats"]["type_unsupported"]
+    malicious_count=stats["malicious"]
+    suspicious_count=stats["suspicious"]
+    undetected_count=stats["undetected"]
+    harmless_count=stats["harmless"]
+    timeout_count=stats["timeout"]
+    conf_timeout=stats["confirmed_timeout"]
+    failure_count=stats["failure"]
+    type_unsupported_count=stats["type_unsupported"]
     total_engines = malicious_count+suspicious_count+undetected_count+harmless_count+timeout_count+conf_timeout+failure_count+type_unsupported_count
     lvl3_ratio = round(undetected_count/total_engines, ndigits=2)
     lvl2_ratio = round(harmless_count/total_engines, ndigits=2)
