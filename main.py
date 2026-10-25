@@ -5,7 +5,7 @@ from database.database import get_db
 from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy.orm import Session
-from services.virustotal import scan_IP_DOMAIN_VT,scan_file_VT, scan_URL_VT
+from services.virustotal import scan_ip_domain_vt,scan_file_vt, scan_url_vt
 from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV, scan_domain_hostname_AV
 from services.abuselpdb import scan_ip_APDB
 from typing import Literal
@@ -95,19 +95,19 @@ def ip_scan(target: IPv4Address|IPv6Address , type: Literal["recon_ip_scan", "ow
 def VTscan(scantype: Literal["domain", "file", "ipaddress", "url"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
         case "ipaddress":
-            VTresult = scan_IP_DOMAIN_VT(target_IP_DOMAIN=target, scan_type="IP")
+            VTresult = scan_ip_domain_vt(target_IP_DOMAIN=target, scan_type="IP")
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="IPaddress", id_detail=id_detail)
             return VTresult_temp
         case "domain":
-            VTresult = scan_IP_DOMAIN_VT(target_IP_DOMAIN=target, scan_type="DOMAIN")
+            VTresult = scan_ip_domain_vt(target_IP_DOMAIN=target, scan_type="DOMAIN")
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", id_detail=id_detail,scan_type="Domain")
             return VTresult_temp
         case "file":
-            VTresult = scan_file_VT(file_hash=target,target_file_name=id_detail)
+            VTresult = scan_file_vt(file_hash=target,target_file_name=id_detail)
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="File", id_detail=id_detail)
             return VTresult_temp
         case "url":
-            VTresult = scan_URL_VT(target_URL=target)
+            VTresult = scan_url_vt(target_URL=target)
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="URL", id_detail=id_detail)
             return VTresult_temp
         case _:
@@ -164,7 +164,7 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
     authenticate(request=request, db=db)
     
     user_id = return_user_id(db=db, target_username=request.name)
-
+    assert user_id is not None
     if authorize(username=request.name, db=db) is True:
         is_admin = True
 
@@ -185,7 +185,7 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
                     AVresult = AVscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
                     results.append(AVresult)
 
-        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results) # pyright: ignore[reportArgumentType]
 
         return {"results": results}
     else:
@@ -200,6 +200,7 @@ def scanfile(request: FileRequest, db:Session = Depends(get_db)):
     results = []
     authenticate(request=request, db=db)
     user_id = return_user_id(db=db, target_username=request.name)
+    assert user_id is not None
     for option in request.scan_engine:
         match option:
             case "virustotal":
@@ -220,6 +221,7 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
 
     user_id = return_user_id(db=db, target_username=request.name)
 
+    assert user_id is not None
     for option in request.scan_engine:
         match option:
             case "virustotal":
@@ -238,6 +240,7 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
     authenticate(request=request, db=db)
 
     user_id = return_user_id(db=db, target_username=request.name)
+    assert user_id is not None
 
     AVresult = AVscan(scantype="url_heavy", target=request.target_url, id_detail=request.url_id)
 
@@ -250,6 +253,7 @@ def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
     authenticate(request=request, db=db)
 
     user_id = return_user_id(db=db, target_username=request.name)
+    assert user_id is not None
 
     results = []
     for option in request.scan_engines:
