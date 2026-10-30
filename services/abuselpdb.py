@@ -6,27 +6,24 @@ from dotenv import load_dotenv
 from ipaddress import IPv4Address, IPv6Address
 
 #The report_age parameter is used to determine how old the reports retrieved by abuselpdb API can, at max, be
-def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple[bool, str|dict]:
+def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, report_age=90) -> tuple[bool, str|dict]:
     last_error = ''
     load_dotenv()
-    API_key=getenv("ABUSELPDB_API_KEY")
+    API_KEY=getenv("ABUSELPDB_API_KEY")
 
-    if API_key is None:
+    if API_KEY is None:
         return (False, "The abuselpdb API key is None")
 
     url = 'https://api.abuseipdb.com/api/v2/check'
 
-    if report_age == 0:
-        report_age = 90
-
     querystring = {
-        'ipAddress': target_IP,
+        'ipAddress': target_ip,
         'maxAgeInDays': report_age,
             }
 
     headers = {
     'Accept': 'application/json',
-    'Key': API_key
+    'Key': API_KEY
         }
 
     for _ in range(4):
@@ -35,23 +32,23 @@ def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple[
                     response.raise_for_status()
     
                 except requests.exceptions.Timeout:
-                    return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
+                    return (False, "Couldn't communicate with the Abuselpdb's API server, TIMEOUT occured.")
                 
                 except requests.exceptions.ConnectionError:
-                    return (False, "Could not connect to the Alienvault's API server.")
+                    return (False, "Could not connect to the Abuselpdb's API server.")
             
                 except requests.exceptions.HTTPError as e:
                     if e.response is None:
                         return (False, str(e))
                     match e.response.status_code:
                         case 403:
-                            return (False, "Access denied by Alienvault's API server")
+                            return (False, "Access denied by Abuselpdb's API server")
                         case 429:
-                            return (False, "The rate limit for the Alienvault's API server has been reached")
+                            return (False, "Abuselpdb has throttled the request")
                         case 400 | 401 | 404:
-                            return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
+                            return (False, f"The following error has occured with the Abuselpdb API query: {str(e)} ")
                         case _:
-                            last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                            last_error = f"ABUSELPDB ERROR: HTTP {e.response.status_code}: {e.response.reason}"
                             sleep(5)
                             continue
             
@@ -61,15 +58,18 @@ def scan_ip_APDB(target_IP: IPv6Address| IPv4Address, report_age: int) -> tuple[
                     continue
         
                 else:
-                    return(True, aggregate_APDB_results(rec_response=response))
-                
+
+                    return(True, aggregate_apdb_results(rec_response=response))
+ 
     return (False, last_error)
 
 
-def aggregate_APDB_results(rec_response) -> dict:
+def aggregate_apdb_results(rec_response: requests.Response) -> dict:
+    json_rec_response= rec_response.json()
+    
     concern = ''
     rec_response = rec_response.json()
-    data = rec_response["data"]
+    data = json_rec_response["data"]
     abpdb_score = data["abuseConfidenceScore"]
 
     match abpdb_score:
