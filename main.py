@@ -1,3 +1,5 @@
+#NOTE: The hostname scanning functionality has been removed, implment its removal here too
+#NOTE: Changes the scan_ip_APDB functiion name and gave report_age a default value of 90 on the parameter
 from fastapi import FastAPI, Depends,HTTPException
 import bcrypt
 from database.db_functions import return_key,authorize_user, return_user_id

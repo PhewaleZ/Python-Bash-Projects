@@ -6,21 +6,21 @@ from ipaddress import IPv4Address, IPv6Address
 
 
 #NOTE: error checking for an invalid IP address will be done way earlier into the api
-def make_request(API_key: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Address) -> tuple[bool, str|dict]:
+def make_request(API_KEY: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Address) -> tuple[bool, str|requests.Response]:
     last_error = ''
     url = ''
     if is_own_ip is False:
-        url = f"https://api.ipinfo.io/lite/{target_ip}?token={API_key}"
+        url = f"https://api.ipinfo.io/lite/{target_ip}?token={API_KEY}"
 
     if is_own_ip is True:
-        url = f"https://api.ipinfo.io/lite/me?token={API_key}"
+        url = f"https://api.ipinfo.io/lite/me?token={API_KEY}"
 
     for _ in range(4):
         try:
             response = requests.get(url=url, timeout=8)
             response.raise_for_status()
         except requests.exceptions.Timeout:
-            return (False, "Couldn't communicate with the IPINFO server, TIMEOUT occured.")
+            return (False, "Could not communicate with the IPINFO server, TIMEOUT occured.")
         
         except requests.exceptions.ConnectionError:
             return (False, "Could not connect to the IPINFO API server.")
@@ -38,60 +38,64 @@ def make_request(API_key: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Addre
                 case 400 | 401 | 404:
                     return (False, f"The following error has occured with the IPINFO API query: {str(e)} ")
                 case _:
-                    last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                    last_error = f"IPINFO ERROR: HTTP {e.response.status_code}: {e.response.reason}"
                     continue
         
         except requests.exceptions.RequestException as e:
-            last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
+            assert e.response is not None
+            last_error = f"IPINFOR ERROR: HTTP code {e.response.status_code}: {e.response.reason}" 
             continue
         else:
-            results = aggregate_results(details=response)
-            return (True, results)
+            return (True, response)
             
     return (False, last_error)
 
 def see_own_ip() -> tuple[bool, str|dict]:
     load_dotenv()
-    API_key = getenv("IPINFO_API_KEY")
+    API_KEY = getenv("IPINFO_API_KEY")
     
-    if API_key is None:
+    if API_KEY is None:
         return (False, 'IPINFO api key is None')
 
-    #Note that the parameter "target_ip" is set to 0 as it isnt relevant for scaning your own IP address
-    response = make_request(API_key=API_key, is_own_ip=True, target_ip=IPv4Address(0))
-
-    if response[0] is True:
-        return (True, response[1])
-    else:
-        return (False, response[1])
-
-
-def aggregate_results(details) -> dict:
-    details = details.json()
+    #NOTE: that the parameter "target_ip" is set to 0 as it isnt relevant for scaning your own IP address
+    response_check = make_request(API_KEY=API_KEY, is_own_ip=False, target_ip=IPv4Address(0))
     
-    ipinfo_details={
-        "IP Adress": details["ip"],
-        "asn_code": details["asn"],
-        "as_name": details["as_name"],
-        "as_domain": details["as_domain"],
-        "country": details["country"],
+    if response_check[0] is True:
+        assert not isinstance(response_check[1], str)
+        ipinfo_results = aggregate_results(rec_response=response_check[1])
+        return (True, ipinfo_results)
+    else:
+        return (False, response_check[1]) # pyright: ignore[reportReturnType]
+    
+
+
+def aggregate_results(rec_response: requests.Response) -> dict:
+    json_rec_response = rec_response.json()
+    
+    ipinfo_results={
+        "IP Address": json_rec_response["ip"],
+        "asn_code": json_rec_response["asn"],
+        "as_name": json_rec_response["as_name"],
+        "as_domain": json_rec_response["as_domain"],
+        "country": json_rec_response["country"],
     }
-    print("the details are",{"internal_results": ipinfo_details})
-    return ipinfo_details
+    return ipinfo_results
 
 def check_ip(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
     load_dotenv()
-    API_key = getenv("IPINFO_API_KEY")
+    API_KEY = getenv("IPINFO_API_KEY")
     
-    if API_key is None:
+    if API_KEY is None:
         return (False, 'IPINFO api key is None')
     
-    response = make_request(API_key=API_key, is_own_ip=False, target_ip=target_ip)
-    
-    if response[0] is True:
-        return (True, response[1])
+    response_check = make_request(API_KEY=API_KEY, is_own_ip=False, target_ip=target_ip)
+
+    if response_check[0] is True:
+        assert not isinstance(response_check[1], str)
+        ipinfo_results = aggregate_results(rec_response=response_check[1])
+        return (True, ipinfo_results)
     else:
-        return (False, response[1])
+        return (False, response_check[1]) # pyright: ignore[reportReturnType]
 
 
 #NOTE: This function acts as a testing function for what type of errors ipinfo's api returns as finding documentation from ipinfo direrctly was hard
