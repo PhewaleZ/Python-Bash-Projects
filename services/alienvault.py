@@ -3,31 +3,32 @@ from dotenv import load_dotenv
 from os import getenv
 from typing import Literal
 from  ipaddress import IPv4Address, IPv6Address
-#The variable "detail" just holds any relevant information to make the request to the API server
-def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "HASH", "LIGHT_URL"], detail: str|IPv6Address|IPv4Address) -> tuple[bool, str|requests.Response]:
+
+#NOTE: The parameter "detail" holds the actual target of the scan
+def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "HASH", "LIGHT_URL"], target_detail: str|IPv6Address|IPv4Address) -> tuple[bool, str|requests.Response]:
     url = ''
     last_error = ''
     load_dotenv()
-    API_key= getenv("AV_API_KEY")
+    API_KEY= getenv("AV_API_KEY")
 
-    if API_key is None:
+    if API_KEY is None:
         return (False, "The alienvault API key is None")
     
-    header = {"X-OTX-API-KEY": API_key}
+    header = {"X-OTX-API-KEY": API_KEY}
 
     match query_type:
         case "IPV4":
-            url=f"https://otx.alienvault.com/api/v1/indicators/IPv4/{detail}/general"
+            url=f"https://otx.alienvault.com/api/v1/indicators/IPv4/{target_detail}/general"
         case "IPV6":
-            url=f"https://otx.alienvault.com//api/v1/indicators/IPv6/{detail}/general"
+            url=f"https://otx.alienvault.com//api/v1/indicators/IPv6/{target_detail}/general"
         case "DOMAIN":
-            url=f"https://otx.alienvault.com/api/v1/indicators/domain/{detail}/general"
+            url=f"https://otx.alienvault.com/api/v1/indicators/domain/{target_detail}/general"
         case "HOSTNAME":
-            url=f"https://otx.alienvault.com/api/v1/indicators/hostname/{detail}/general"
+            url=f"https://otx.alienvault.com/api/v1/indicators/hostname/{target_detail}/general"
         case "HASH":
-            url=f"https://otx.alienvault.com/api/v1/indicators/file/{detail}/general"
+            url=f"https://otx.alienvault.com/api/v1/indicators/file/{target_detail}/general"
         case "LIGHT_URL":
-            url=f"https://otx.alienvault.com/api/v1/indicators/url/{detail}/general"
+            url=f"https://otx.alienvault.com/api/v1/indicators/url/{target_detail}/general"
     
     for _ in range(4):
         try:
@@ -35,7 +36,7 @@ def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "
             response.raise_for_status()
 
         except requests.exceptions.Timeout:
-            return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
+            return (False, "Could not communicate with the Alienvault's API server, TIMEOUT occured.")
         
         except requests.exceptions.ConnectionError:
             return (False, "Could not connect to the Alienvault's API server.")
@@ -51,11 +52,12 @@ def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "
                 case 400 | 401 | 404:
                     return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
                 case _:
-                    last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                    last_error = f"ALIENVAULT ERROR: HTTP {e.response.status_code}: {e.response.reason}"
                     continue
     
         except requests.exceptions.RequestException as e:
-            last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
+            assert e.response is not None
+            last_error = f"ALIENVAULT ERROR: HTTP code: {e.response.status_code}: {e.response.reason}" 
             continue
 
         else:
@@ -64,107 +66,95 @@ def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "
     return (False, last_error)
 
 
-def scan_file_AV(file_hash: str, is_hash=True) -> tuple[bool, str| dict]:
-    if is_hash is True:
-        result = make_get_request(query_type="HASH", detail=file_hash)
+def scan_file_AV(file_hash: str) -> tuple[bool, str| dict]:
+    result = make_get_request(query_type="HASH", target_detail=file_hash)
+
+    if result[0] is True:
+        assert isinstance(result[1], requests.Response)
+        av_result = aggregate_AV_results(rec_response=result[1])
+        return (True, av_result)
     else:
-        return (False, "This functionality isnt present yet")
-
-    if result[0] is False:
-        return (False, result[1]) #type: ignore
-    else:
-        result_json= result[1].json() #type: ignore
-
-    AV_result_file = aggregate_AV_results(rec_response=result_json)
-
-    return (True, AV_result_file)
-
-
-def scan_IP_AV(target_IP: IPv4Address| IPv6Address) -> tuple:
-    if isinstance(target_IP, IPv4Address) is True:
-        result = make_get_request(query_type="IPV4",detail=target_IP)
-    else:
-        result = make_get_request(query_type="IPV6", detail=target_IP)
-
-    if result[0] is False:
+        assert isinstance(result[1], str)
         return (False, result[1])
+
+def scan_IP_AV(target_ip: IPv4Address| IPv6Address) -> tuple:
+    if isinstance(target_ip, IPv4Address) is True:
+        result = make_get_request(query_type="IPV4",target_detail=target_ip)
     else:
-        result_json = result[1].json() #type: ignore
+        result = make_get_request(query_type="IPV6", target_detail=target_ip)
 
-    AV_result_IP = aggregate_AV_results(rec_response=result_json)
-
-    return (True, AV_result_IP)
-
-
-
-def scan_domain_hostname_AV(target_domain, is_domain: bool) -> tuple[bool, str|dict]:
-    if is_domain is True:
-        result = make_get_request(query_type="DOMAIN", detail=target_domain)
+    if result[0] is True:
+        assert isinstance(result[1], requests.Response)
+        av_result = aggregate_AV_results(rec_response=result[1])
+        return (True, av_result)
     else:
-        result = make_get_request(query_type="HOSTNAME", detail=target_domain)
+        assert isinstance(result[1], str)
+        return (False, result[1])
 
-    if result[0] is False:
-        return (False, result[1]) #type: ignore
+def scan_domain_hostname_AV(target_domain: str) -> tuple[bool, str|dict]:
+    result = make_get_request(query_type="DOMAIN", target_detail=target_domain)
+
+    if result[0] is True:
+        assert isinstance(result[1], requests.Response)
+        av_result = aggregate_AV_results(rec_response=result[1])
+        return (True, av_result)
     else:
-        result_json= result[1].json()#type: ignore
+        assert isinstance(result[1], str)
+        return (False, result[1])
 
-    AV_result_Domain = aggregate_AV_results(rec_response=result_json)
+def aggregate_AV_results(rec_response: requests.Response) -> dict:
+    json_rec_response = rec_response.json()
+    details_of_pulses = []
+    pulse_count = json_rec_response["pulse_info"]["count"]
 
-    return (True, AV_result_Domain)
-
-def aggregate_AV_results(rec_response: dict) -> dict:
-    concern = ''
-    pulse_count = rec_response["pulse_info"]["count"]
-    if rec_response["base_indicator"] is not None:
+    #NOTE: The key "base_indicator" is used to hint if AV actually had the target in its database
+    if json_rec_response["base_indicator"] is not None:
         found = True
     else:
         found = False
-    target_name = rec_response["indicator"]
-    details_of_pulses = []
-    pulses=rec_response["pulse_info"]["pulses"]
+
+    pulses = json_rec_response["pulse_info"]["pulses"]
 
     for pulse in pulses:
-        pulse_id=pulse["id"]
-        pulse_name=pulse["name"]
+        pulse_id= pulse["id"]
+        pulse_name= pulse["name"]
 
         details_of_pulses.append({"name":pulse_name,
                                   "id": pulse_id})
-    #If less than 3 pulses are found then its treated as level 3 as the absence of evidence doesnt mean that the target is clean
+    #NOTE: If less than 3 pulses are found then its treated as level 3, as the absence of evidence doesnt mean that the target is clean
+    concern_lvl = ""
     match pulse_count:
         case x if pulse_count <= 2:
-            concern = "level 3"
+            concern_lvl = "level 3"
         case x if 3 <= pulse_count <= 5:
-            concern = "level 2"
+            concern_lvl = "level 2"
         case x if pulse_count >= 6:
-            concern = "level 1"
+            concern_lvl = "level 1"
 
-    #The found key is used to indicate if the AV API actually had an entry for the result, its not a guarantee just an extra piece of info
+    target_name = json_rec_response["indicator"]
     formatted_response ={
         "target":target_name,
         "pulse_count":pulse_count,
         "found":found,
         "pulse_details":{
             "pulses":details_of_pulses,
-            "concern": concern
+            "concern": concern_lvl
         }
     }
-    
-    #NOTE: insert function which writes to the database here
-    #NOTE: facilitate the checking of the full response from the database should be done for this API
 
     return (formatted_response)
 
-def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
+def make_post_request(target_detail: str) -> tuple[bool, str|requests.Response]:
     last_error = ''
     load_dotenv()
-    API_key= getenv("AV_API_KEY")
-    if API_key is None:
+    API_KEY= getenv("AV_API_KEY")
+    if API_KEY is None:
         return (False, "Alienvault API key is None")
     
     url=f"https://otx.alienvault.com/api/v1/indicators/submit_url"
-    header = {"X-OTX-API-KEY": API_key}
+    header = {"X-OTX-API-KEY": API_KEY}
     data={
-        "url": detail
+        "url": target_detail
 }
 
     for _ in range(4):
@@ -189,13 +179,13 @@ def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
                     case 400 | 401 | 404:
                         return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
                     case _:
-                        last_error = f"HTTP {e.response.status_code}: {e.response.reason}"
+                        last_error = f"ALIENVAULT ERROR: HTTP {e.response.status_code}: {e.response.reason}"
                         continue
         
             except requests.exceptions.RequestException as e:
-                last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
+                assert e.response is not None
+                last_error = f"ALIENVAULT ERROR: HTTP {e.response.status_code}: {e.response.reason}"
                 continue
-    
             else:
                 return(True, response)
     
@@ -205,29 +195,32 @@ def make_post_request(detail: str) -> tuple[bool, str|requests.Response]:
 def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple[bool, str|dict]:
 
     if scan_type == "LIGHT_URL":
-        result = make_get_request(query_type="LIGHT_URL",detail=target_url)
+        result_check = make_get_request(query_type="LIGHT_URL",target_detail=target_url)
 
-        if result[0] is False:
-            return (False, f"The request could not be made to Alienvault's API server, LAST KNOWN STATUS IS {result[1]}")
+        if result_check[0] is False:
+            assert isinstance(result_check[1], str)
+            return (False, result_check[1])
         else:
-            result_json = result[1].json() #type: ignore
+            assert isinstance(result_check[1], requests.Response)
+            result_json = result_check[1].json()
 
         if result_json.get("detail", {}) == "endpoint not found":
             return (False, "AV API couldnt find the endpoint")
         else:
-            AV_result_url = aggregate_AV_results(rec_response=result_json)
-            return (True, AV_result_url)
+            AV_result = aggregate_AV_results(rec_response=result_json)
+            return (True, AV_result)
 
-
-        #This is done if the scan being conducted on the URL is complex
     else:
-        result = make_post_request(detail=target_url)
+        result_check = make_post_request(target_detail=target_url)
 
-        if result[0] is False:
-            return (False, result[1]) #type: ignore This error will never happen in normal conditions
+        if result_check[0] is False:
+            assert isinstance(result_check[1], str)
+            return (False, result_check[1]) 
         else:
-            result_json = result[1].json() #type: ignore 
-        #If the field of status is "okay" then it means that it as been successfully submitted to the API server and the link to it is returned
+            assert isinstance(result_check[1], requests.Response)
+            result_json = result_check[1].json() 
+
+        #NOTE: The variable is deliberately overwritten
         if result_json.get("status", {}) == "ok": #type: ignore
             link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
@@ -236,7 +229,7 @@ def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tup
     
 
 def testing_function():
-    result = scan_domain_hostname_AV(target_domain="gmail.com", is_domain=False)
+    result = scan_domain_hostname_AV(target_domain="gmail.com")
     #if result[0] is True:
         #with open("AV_Domain_resp_example.json", "w") as f:
         #    json.dump(result[1], fp=f, indent=2) # type: ignore
