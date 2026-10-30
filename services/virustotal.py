@@ -4,9 +4,8 @@ from dotenv import load_dotenv
 from time import sleep
 from ipaddress import IPv4Address, IPv6Address
 from typing import Literal, Any
-#NOTE: When a scan is done by virustotal and one of the scanning functions are used, take note that a tuple is returned, the first value in the tuple is going to be a boolean to indicate whether the result was successful
 
-#This function is what makes the HTTP request and validates it and returns if it is the intended response or an error
+#This function is what makes the HTTP request and validates it and returns if it is the expected response or an error
 def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bool, str | requests.Response]:
     last_error = "Unknown"
     for _ in range(4):
@@ -57,31 +56,30 @@ def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bo
     
 #NOTE: The scanning ip address VT endpoint accepts both ipv6 and ipv4 addresses
 #The variable scan_type will indicate whether an IP ao domain is being scanned
-def scan_ip_domain_vt(target_IP_DOMAIN: IPv4Address | IPv6Address| str, scan_type: Literal["DOMAIN", "IP"]) -> tuple[bool, str | dict]:
+def scan_ip_domain_vt(target_ip_domain: IPv4Address | IPv6Address| str, scan_type: Literal["DOMAIN", "IP"]) -> tuple[bool, str | dict]:
     load_dotenv()
     url= ''
-    api_key = os.getenv("VIRUSTOTALAPI_KEY")
+    API_KEY = os.getenv("VIRUSTOTALAPI_KEY")
 
-    if api_key == None:
+    if API_KEY == None:
         return (False,'Virus Total API key is None')
 
-    if scan_type == 'IP': 
-        url = f"https://www.virustotal.com/api/v3/ip_addresses/{target_IP_DOMAIN}"
+    if scan_type == 'IP':           
+        url = f"https://www.virustotal.com/api/v3/ip_addresses/{target_ip_domain}"
     
     if scan_type == 'DOMAIN':
-        url = f"https://www.virustotal.com/api/v3/domains/{target_IP_DOMAIN}"
+        url = f"https://www.virustotal.com/api/v3/domains/{target_ip_domain}"
 
     headers = {
         "accept": "application/json",
-        "x-apikey": api_key
+        "x-apikey": API_KEY
     }
 
     request_check = send_request(url=url, headers=headers)
 
-    #NOTE:if the first index is true, then a response.Request was returned, not a string
     if request_check[0] is True:
         assert not isinstance(request_check[1], str)
-        virus_total_res = aggregate_vt_results_ip_domain(rec_response=request_check[1], target_name=target_IP_DOMAIN) 
+        virus_total_res = aggregate_vt_results_ip_domain(rec_response=request_check[1], target_name=target_ip_domain) 
         return (True, virus_total_res)
     else:
         return (False, request_check[1]) # pyright: ignore[reportReturnType]
@@ -89,8 +87,8 @@ def scan_ip_domain_vt(target_IP_DOMAIN: IPv4Address | IPv6Address| str, scan_typ
 def aggregate_vt_results_ip_domain(rec_response: requests.Response, target_name: IPv4Address|IPv6Address|str) -> dict:
     warning: list[str] = []
 
-    json_rec_response=rec_response.json()
-    last_analysis_stats= json_rec_response["data"]["attributes"]["last_analysis_stats"]
+    json_rec_response = rec_response.json()
+    last_analysis_stats = json_rec_response["data"]["attributes"]["last_analysis_stats"]
 
     malicious_count=(last_analysis_stats["malicious"])
     suspicious_count=(last_analysis_stats["suspicious"])
@@ -129,15 +127,15 @@ def aggregate_vt_results_ip_domain(rec_response: requests.Response, target_name:
 def scan_file_vt(file_hash, target_file_name) -> tuple[bool, str|dict]:
     load_dotenv()
 
-    api_key = os.getenv("VIRUSTOTALAPI_KEY")
+    API_KEY = os.getenv("VIRUSTOTALAPI_KEY")
 
-    if api_key == None:
-        return (False, 'Virus Total API key is None')
+    if API_KEY == None:
+        return (False, 'VirusTotal API key is None')
     
     url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
 
     headers = {
-        "x-apikey": api_key,
+        "x-apikey": API_KEY,
         "accept": "application/json"
     }
 
@@ -208,7 +206,6 @@ def aggregate_vt_results_filehash(rec_response: requests.Response,target_name: s
                 "count":undetected_count,
                 "ratio":lvl3_ratio
             },
-            #The usage of "int" will remove whatever comes after the decimal point
             "level2":{
                 "count":harmless_count+(int(harmless_vote_count*0.003)),
                 "ratio":lvl2_ratio
@@ -225,9 +222,9 @@ def aggregate_vt_results_filehash(rec_response: requests.Response,target_name: s
 def scan_url_vt(target_URL):
     load_dotenv()
 
-    api_key = os.getenv("VIRUSTOTALAPI_KEY")
+    API_KEY = os.getenv("VIRUSTOTALAPI_KEY")
 
-    if api_key == None:
+    if API_KEY == None:
         return (False, 'Virus Total API key is None')
     
     url = "https://www.virustotal.com/api/v3/urls"
@@ -235,7 +232,7 @@ def scan_url_vt(target_URL):
     payload = { "url": target_URL }
     headers = {
         "accept": "application/json",
-        "x-apikey": api_key,
+        "x-apikey": API_KEY,
         "content-type": "application/x-www-form-urlencoded"
     }
 
@@ -257,7 +254,7 @@ def scan_url_vt(target_URL):
 
         headers = {
             "accept": "application/json",
-            "x-apikey": api_key
+            "x-apikey": API_KEY
         }
         #The request_check tuple is overwritten in this new request
         request_check = send_request(url=url, headers=headers, is_url=False)
