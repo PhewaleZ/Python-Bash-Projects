@@ -4,7 +4,7 @@ from os import getenv
 from typing import Literal
 from  ipaddress import IPv4Address, IPv6Address
 
-#NOTE: The parameter "detail" holds the actual target of the scan
+#NOTE: The parameter "target_detail" holds the actual target of the scan
 def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "HASH", "LIGHT_URL"], target_detail: str|IPv6Address|IPv4Address) -> tuple[bool, str|requests.Response]:
     url = ''
     last_error = ''
@@ -66,18 +66,18 @@ def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "
     return (False, last_error)
 
 
-def scan_file_AV(file_hash: str) -> tuple[bool, str| dict]:
+def scan_file_av(file_hash: str) -> tuple[bool, str| dict]:
     result = make_get_request(query_type="HASH", target_detail=file_hash)
 
     if result[0] is True:
         assert isinstance(result[1], requests.Response)
-        av_result = aggregate_AV_results(rec_response=result[1])
+        av_result = aggregate_av_results(rec_response=result[1])
         return (True, av_result)
     else:
         assert isinstance(result[1], str)
         return (False, result[1])
 
-def scan_IP_AV(target_ip: IPv4Address| IPv6Address) -> tuple:
+def scan_ip_av(target_ip: IPv4Address| IPv6Address) -> tuple:
     if isinstance(target_ip, IPv4Address) is True:
         result = make_get_request(query_type="IPV4",target_detail=target_ip)
     else:
@@ -85,24 +85,24 @@ def scan_IP_AV(target_ip: IPv4Address| IPv6Address) -> tuple:
 
     if result[0] is True:
         assert isinstance(result[1], requests.Response)
-        av_result = aggregate_AV_results(rec_response=result[1])
+        av_result = aggregate_av_results(rec_response=result[1])
         return (True, av_result)
     else:
         assert isinstance(result[1], str)
         return (False, result[1])
 
-def scan_domain_hostname_AV(target_domain: str) -> tuple[bool, str|dict]:
+def scan_domain_av(target_domain: str) -> tuple[bool, str|dict]:
     result = make_get_request(query_type="DOMAIN", target_detail=target_domain)
 
     if result[0] is True:
         assert isinstance(result[1], requests.Response)
-        av_result = aggregate_AV_results(rec_response=result[1])
+        av_result = aggregate_av_results(rec_response=result[1])
         return (True, av_result)
     else:
         assert isinstance(result[1], str)
         return (False, result[1])
 
-def aggregate_AV_results(rec_response: requests.Response) -> dict:
+def aggregate_av_results(rec_response: requests.Response) -> dict:
     json_rec_response = rec_response.json()
     details_of_pulses = []
     pulse_count = json_rec_response["pulse_info"]["count"]
@@ -192,7 +192,7 @@ def make_post_request(target_detail: str) -> tuple[bool, str|requests.Response]:
     return (False, last_error)
 
 
-def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple[bool, str|dict]:
+def scan_url_av(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tuple[bool, str|dict]:
 
     if scan_type == "LIGHT_URL":
         result_check = make_get_request(query_type="LIGHT_URL",target_detail=target_url)
@@ -207,7 +207,7 @@ def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tup
         if result_json.get("detail", {}) == "endpoint not found":
             return (False, "AV API couldnt find the endpoint")
         else:
-            AV_result = aggregate_AV_results(rec_response=result_json)
+            AV_result = aggregate_av_results(rec_response=result_json)
             return (True, AV_result)
 
     else:
@@ -229,7 +229,7 @@ def scan_url_AV(target_url, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -> tup
     
 
 def testing_function():
-    result = scan_domain_hostname_AV(target_domain="gmail.com")
+    result = scan_domain_av(target_domain="gmail.com")
     #if result[0] is True:
         #with open("AV_Domain_resp_example.json", "w") as f:
         #    json.dump(result[1], fp=f, indent=2) # type: ignore
