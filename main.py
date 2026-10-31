@@ -15,7 +15,7 @@ from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,Dom
 from administrative.logging import create_log
 
 def authorize_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session) -> bool:
-    check = search_user(db=db, username=request.name)
+    check = search_user(db=db, username=request.username)
     if check is None:
         return False
     else:
@@ -23,7 +23,7 @@ def authorize_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLigh
 
 
 def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
-    hashed_pass_in_db = search_user_key(db=db, username=request.name)
+    hashed_pass_in_db = search_user_key(db=db, username=request.username)
 
     #NOTE: This is a security feature
     if hashed_pass_in_db is None:
@@ -165,7 +165,7 @@ def ABPDBscan(target: IPv4Address|IPv6Address, age: int, id_detail: str):
 api = FastAPI(
     title="Cybersecurity API",
     description="This is me validating and improving my understanding of API's",
-    version="1.0.0"
+    version="1.0.1"
 )
 
 @api.post("/ipscans")
@@ -174,14 +174,14 @@ def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
     is_admin = False
     authenticate_user(request=request, db=db)
     
-    user_id = search_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
     if authorize_user(request=request, db=db) is True:
         is_admin = True
 
     if request.scan_type == "custom":
         results = []
-        for service in request.scan_engine:
+        for service in request.scan_engines:
             print("It is matching the services now")
             match service:
                 case "abuselpdb":
@@ -196,13 +196,13 @@ def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
                     AVresult = AVscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
                     results.append(AVresult)
 
-        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results) # pyright: ignore[reportArgumentType]
+        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results) # pyright: ignore[reportArgumentType]
 
         return {"results": results}
     else:
         results = ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.report_age)  # type: ignore
         
-        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results)
 
         return results
 
@@ -210,9 +210,9 @@ def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
 def scan_file(request: FileRequest, db:Session = Depends(get_db)):
     results = []
     authenticate_user(request=request, db=db)
-    user_id = search_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
-    for option in request.scan_engine:
+    for option in request.scan_engines:
         match option:
             case "virustotal":
                 VTresult = VTscan(scantype="file", target=request.target_hash, id_detail=request.file_id)
@@ -221,7 +221,7 @@ def scan_file(request: FileRequest, db:Session = Depends(get_db)):
                 AVresult = AVscan(scantype="file", target=request.target_hash, id_detail=request.file_id)
                 results.append(AVresult)
 
-    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results)
     
     return {"results": results}
 
@@ -230,10 +230,10 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
     results = []
     authenticate_user(request=request, db=db)
 
-    user_id = search_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.username)
 
     assert user_id is not None
-    for option in request.scan_engine:
+    for option in request.scan_engines:
         match option:
             case "virustotal":
                 VTresult = VTscan(scantype="url", target=request.target_url, id_detail=request.url_id)
@@ -242,7 +242,7 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
                 AVresult = AVscan(scantype="url_light", target=request.target_url, id_detail=request.url_id)
                 results.append(AVresult)
 
-    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results)
 
     return {"results": results}
 
@@ -250,12 +250,12 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
 def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
     authenticate_user(request=request, db=db)
 
-    user_id = search_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
 
     AVresult = AVscan(scantype="url_heavy", target=request.target_url, id_detail=request.url_id)
 
-    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=AVresult)
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=AVresult)
 
     return {"results": AVresult}
 
@@ -263,7 +263,7 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
 def scan_domain(request: DomainRequest, db: Session = Depends(get_db)):
     authenticate_user(request=request, db=db)
 
-    user_id = search_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
 
     results = []
@@ -276,7 +276,7 @@ def scan_domain(request: DomainRequest, db: Session = Depends(get_db)):
                 VTresult = VTscan(scantype="domain", target=request.target_domain, id_detail=request.domain_id)
                 results.append(VTresult)
 
-    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.name, subject_id=user_id, db=db, scan_result=results)
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results)
 
     return {"results": results}
             
