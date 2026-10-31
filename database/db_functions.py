@@ -8,7 +8,7 @@ def add_user(db: Session, user_obj: User):
     db.refresh(user_obj)
 
 #This will return the stored hash of that users password
-def return_key(db: Session, username: str):
+def search_user_key(db: Session, username: str):
     query = db.query(User.user_key).where(User.username==username)
     key = db.execute(query).mappings()
     key = key.first()
@@ -16,7 +16,7 @@ def return_key(db: Session, username: str):
     return key
 
 #This returns the field in the users "is_admin" column
-def authorize_user(db: Session, username: str):
+def search_user(db: Session, username: str):
     query = db.query(User.is_admin).where(User.username==username)
     result = db.execute(query).mappings()
     result = result.first()
@@ -47,7 +47,7 @@ def list_admin_users(db:Session):
 
     return list_of_users
 
-def return_user_id(db:Session, target_username: str):
+def search_user_id(db:Session, target_username: str):
     query = db.query(User.user_id).where(User.username == target_username)
     result = db.execute(query)
     result = result.scalar_one_or_none()
