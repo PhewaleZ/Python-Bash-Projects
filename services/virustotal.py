@@ -124,7 +124,7 @@ def aggregate_vt_results_ip_domain(rec_response: requests.Response, target_name:
     return (formatted_response)
 
 
-def scan_file_vt(file_hash: str, target_file_name) -> tuple[bool, str|dict]:
+def scan_file_vt(file_hash: str, target_file_name:str) -> tuple[bool, str|dict]:
     load_dotenv()
 
     API_KEY = os.getenv("VIRUSTOTALAPI_KEY")
