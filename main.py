@@ -2,28 +2,30 @@
 #NOTE: Changes the scan_ip_APDB functiion name and gave report_age a default value of 90 on the parameter
 from fastapi import FastAPI, Depends,HTTPException
 import bcrypt
-from database.db_functions import return_key,authorize_user, return_user_id
+from database.db_functions import search_user_key,search_user, search_user_id
 from database.database import get_db
 from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy.orm import Session
 from services.virustotal import scan_ip_domain_vt,scan_file_vt, scan_url_vt
-from services.alienvault import scan_IP_AV,scan_file_AV, scan_url_AV, scan_domain_hostname_AV
-from services.abuselpdb import scan_ip_APDB
+from services.alienvault import scan_ip_av,scan_file_av, scan_url_av, scan_domain_av
+from services.abuselpdb import scan_ip_apdb
 from typing import Literal
 from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,DomainRequest
 from administrative.logging import create_log
 
-def authorize(username: str, db: Session) -> bool:
-    check = authorize_user(db=db, username=username)
+def authorize_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session) -> bool:
+    check = search_user(db=db, username=request.name)
     if check is None:
         return False
     else:
         return check["is_admin"]
 
 
-def authenticate(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
-    hashed_pass_in_db = return_key(db=db, username=request.name)
+def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
+    hashed_pass_in_db = search_user_key(db=db, username=request.name)
+
+    #NOTE: This is a security feature
     if hashed_pass_in_db is None:
         pass_in_db = "dummy".encode()
     else:
@@ -73,9 +75,9 @@ def ip_scan(target: IPv4Address|IPv6Address , type: Literal["recon_ip_scan", "ow
 
     match type:
             case "recon_ip_scan":
-                IPINFOresult = check_ip(target_ip=target)
-                IPINFOresult_temp = scan_response_template(result=IPINFOresult, service="Ipinfo", scan_type="IPaddress", id_detail=id_detail)
-                return {"results": [IPINFOresult_temp]}
+                ipinfo_result = check_ip(target_ip=target)
+                ipinfo_result_temp = scan_response_template(result=ipinfo_result, service="Ipinfo", scan_type="IPaddress", id_detail=id_detail)
+                return {"results": [ipinfo_result_temp]}
             
             case "own_ip":
                 if is_admin is False:
@@ -84,9 +86,9 @@ def ip_scan(target: IPv4Address|IPv6Address , type: Literal["recon_ip_scan", "ow
                         detail="You are not authorized to do this"
                     )
                 else:
-                    IPINFOresult = see_own_ip()
-                    IPINFOresult_temp = scan_response_template(result=IPINFOresult, service='Ipinfo', scan_type="IPaddress", id_detail=id_detail)
-                    return {"results": [IPINFOresult_temp]}
+                    ipinfo_result = see_own_ip()
+                    ipinfo_result_temp = scan_response_template(result=ipinfo_result, service='Ipinfo', scan_type="IPaddress", id_detail=id_detail)
+                    return {"results": [ipinfo_result_temp]}
 
             case "scan_ip":
                 VTresult = VTscan(scantype="ipaddress", target=target, id_detail=id_detail)
@@ -97,59 +99,66 @@ def ip_scan(target: IPv4Address|IPv6Address , type: Literal["recon_ip_scan", "ow
 def VTscan(scantype: Literal["domain", "file", "ipaddress", "url"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
         case "ipaddress":
-            VTresult = scan_ip_domain_vt(target_IP_DOMAIN=target, scan_type="IP")
+            VTresult = scan_ip_domain_vt(target_ip_domain=target, scan_type="IP")
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="IPaddress", id_detail=id_detail)
             return VTresult_temp
         case "domain":
-            VTresult = scan_ip_domain_vt(target_IP_DOMAIN=target, scan_type="DOMAIN")
+            VTresult = scan_ip_domain_vt(target_ip_domain=target, scan_type="DOMAIN")
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", id_detail=id_detail,scan_type="Domain")
             return VTresult_temp
         case "file":
+            assert isinstance(target, str)
             VTresult = scan_file_vt(file_hash=target,target_file_name=id_detail)
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="File", id_detail=id_detail)
             return VTresult_temp
         case "url":
-            VTresult = scan_url_vt(target_URL=target)
+            assert isinstance(target, str)
+            VTresult = scan_url_vt(target_url=target)
             VTresult_temp = scan_response_template(result=VTresult, service="Virustotal", scan_type="URL", id_detail=id_detail)
             return VTresult_temp
         case _:
             raise HTTPException(
                 status_code=503,
-                detail="This service hasnt been implemented et"
+                detail="This service doesnt exist"
             )
 
 def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light", "url_heavy"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
         case "ipaddress":
-            AVresult = scan_IP_AV(target_IP=target) # type: ignore
+            assert isinstance(target, (IPv4Address, IPv6Address))
+            AVresult = scan_ip_av(target_ip=target)
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", scan_type="IPaddress", id_detail=id_detail) 
             return AVresult_temp
         case "file":
-            AVresult = scan_file_AV(file_hash=target) # type: ignore
+            assert isinstance(target, str)
+            AVresult = scan_file_av(file_hash=target)
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", scan_type="File", id_detail=id_detail)
             return AVresult_temp
         case "url_light":
-            AVresult = scan_url_AV(target_url=target, scan_type="LIGHT_URL")
+            assert isinstance(target, str)
+            AVresult = scan_url_av(target_url=target, scan_type="LIGHT_URL")
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", scan_type="URL", id_detail=id_detail)
             return AVresult_temp
         case "url_heavy":
-            AVresult = scan_url_AV(target_url=target, scan_type="HEAVY_URL")
+            assert isinstance(target, str)
+            AVresult = scan_url_av(target_url=target, scan_type="HEAVY_URL")
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", id_detail=id_detail, scan_type="URL")
             return AVresult_temp
         case "domain":
-            AVresult = scan_domain_hostname_AV(target_domain=target, is_domain=True)
+            assert isinstance(target, str)
+            AVresult = scan_domain_av(target_domain=target)
             AVresult_temp = scan_response_template(result=AVresult, service="Alienvault", id_detail=id_detail, scan_type="Domain")
             return AVresult_temp
         case _:
             raise HTTPException(
                         status_code=503,
-                        detail="This service hasnt been implemented et"
+                        detail="This service doesnt exist"
                     )
         
 
 #abuselpdb can only do ip address scans
 def ABPDBscan(target: IPv4Address|IPv6Address, age: int, id_detail: str):
-    ABPDBresult = scan_ip_APDB(target_IP=target, report_age=age)
+    ABPDBresult = scan_ip_apdb(target_ip=target, report_age=age)
     ABDBresult_temp = scan_response_template(result=ABPDBresult, service="AbuselPDB", scan_type="IPaddress", id_detail=id_detail)
     return ABDBresult_temp
 
@@ -160,14 +169,14 @@ api = FastAPI(
 )
 
 @api.post("/ipscans")
-def scanip(request: IPRequest, db:Session = Depends(get_db)):
+def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
     print(f"The request looks like {request}")
     is_admin = False
-    authenticate(request=request, db=db)
+    authenticate_user(request=request, db=db)
     
-    user_id = return_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.name)
     assert user_id is not None
-    if authorize(username=request.name, db=db) is True:
+    if authorize_user(request=request, db=db) is True:
         is_admin = True
 
     if request.scan_type == "custom":
@@ -198,10 +207,10 @@ def scanip(request: IPRequest, db:Session = Depends(get_db)):
         return results
 
 @api.post("/filescans")
-def scanfile(request: FileRequest, db:Session = Depends(get_db)):
+def scan_file(request: FileRequest, db:Session = Depends(get_db)):
     results = []
-    authenticate(request=request, db=db)
-    user_id = return_user_id(db=db, target_username=request.name)
+    authenticate_user(request=request, db=db)
+    user_id = search_user_id(db=db, target_username=request.name)
     assert user_id is not None
     for option in request.scan_engine:
         match option:
@@ -219,9 +228,9 @@ def scanfile(request: FileRequest, db:Session = Depends(get_db)):
 @api.post("/urlscans/lightscans")
 def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
     results = []
-    authenticate(request=request, db=db)
+    authenticate_user(request=request, db=db)
 
-    user_id = return_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.name)
 
     assert user_id is not None
     for option in request.scan_engine:
@@ -239,9 +248,9 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
 
 @api.post("/urlscans/heavyscans")
 def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
-    authenticate(request=request, db=db)
+    authenticate_user(request=request, db=db)
 
-    user_id = return_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.name)
     assert user_id is not None
 
     AVresult = AVscan(scantype="url_heavy", target=request.target_url, id_detail=request.url_id)
@@ -251,10 +260,10 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
     return {"results": AVresult}
 
 @api.post("/domainscans")
-def scandomain(request: DomainRequest, db: Session = Depends(get_db)):
-    authenticate(request=request, db=db)
+def scan_domain(request: DomainRequest, db: Session = Depends(get_db)):
+    authenticate_user(request=request, db=db)
 
-    user_id = return_user_id(db=db, target_username=request.name)
+    user_id = search_user_id(db=db, target_username=request.name)
     assert user_id is not None
 
     results = []
