@@ -23,7 +23,7 @@ def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bo
             response.raise_for_status()
 
         except requests.exceptions.Timeout:
-            return (False, "Couldn't communicate with the VirusTotal server, TIMEOUT occured.")
+            return (False, "Could not communicate with the VirusTotal API server, TIMEOUT occured.")
 
         except requests.exceptions.ConnectionError:
             return (False, "Could not connect to the VT API server.")
@@ -124,7 +124,7 @@ def aggregate_vt_results_ip_domain(rec_response: requests.Response, target_name:
     return (formatted_response)
 
 
-def scan_file_vt(file_hash, target_file_name) -> tuple[bool, str|dict]:
+def scan_file_vt(file_hash: str, target_file_name) -> tuple[bool, str|dict]:
     load_dotenv()
 
     API_KEY = os.getenv("VIRUSTOTALAPI_KEY")
@@ -219,7 +219,7 @@ def aggregate_vt_results_filehash(rec_response: requests.Response,target_name: s
 
     return formatted_response
 
-def scan_url_vt(target_URL):
+def scan_url_vt(target_url: str):
     load_dotenv()
 
     API_KEY = os.getenv("VIRUSTOTALAPI_KEY")
@@ -229,7 +229,7 @@ def scan_url_vt(target_URL):
     
     url = "https://www.virustotal.com/api/v3/urls"
 
-    payload = { "url": target_URL }
+    payload = { "url": target_url }
     headers = {
         "accept": "application/json",
         "x-apikey": API_KEY,
@@ -274,7 +274,7 @@ def scan_url_vt(target_URL):
             sleep(8)
             continue
         else:
-            virus_total_res = aggregate_vt_results_urlscan(rec_response=response, target_name=target_URL)
+            virus_total_res = aggregate_vt_results_urlscan(rec_response=response, target_name=target_url)
             return (True, virus_total_res)
     
     return (False, f'The api took too long do return a finished response, LAST KNOWN STATUS IS {last_status}')
