@@ -2,7 +2,7 @@
 #NOTE: Changes the scan_ip_APDB functiion name and gave report_age a default value of 90 on the parameter
 from fastapi import FastAPI, Depends,HTTPException
 import bcrypt
-from database.db_functions import search_user_key,search_user, search_user_id
+from database.db_functions import search_user_key,retrieve_user_authorization, search_user_id
 from database.database import get_db
 from services.ipinfoAPI import see_own_ip,check_ip
 from ipaddress import IPv4Address, IPv6Address
@@ -14,27 +14,26 @@ from typing import Literal
 from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,DomainRequest
 from administrative.logging import create_log
 
-def authorize_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session) -> bool:
-    check = search_user(db=db, username=request.username)
-    if check is None:
-        return False
-    else:
-        return check["is_admin"]
+def authorize_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
+    #NOTE: This will be a boolean, the existence of the user is already confirmed
+    user_authorization = retrieve_user_authorization(db=db, username=request.username)
+        
+    return user_authorization
 
 
 def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
-    hashed_pass_in_db = search_user_key(db=db, username=request.username)
+    #NOTE: The keys are stored as strings in the databsae so encoding is necessary
+    hashed_key_in_db = search_user_key(db=db, username=request.username)
 
     #NOTE: This is a security feature
-    if hashed_pass_in_db is None:
-        pass_in_db = "dummy".encode()
+    if hashed_key_in_db is None:
+        key_in_db = "dummy".encode()
     else:
-        pass_in_db = hashed_pass_in_db["user_key"]
-        pass_in_db = pass_in_db.encode()
+        key_in_db = hashed_key_in_db.encode() # pyright: ignore[reportAttributwAccessIssue]
 
     byte_pass = request.key.encode()
 
-    check = bcrypt.checkpw(password=byte_pass, hashed_password=pass_in_db)
+    check = bcrypt.checkpw(password=byte_pass, hashed_password=key_in_db)
 
     if check is False:
          raise HTTPException(
@@ -155,8 +154,6 @@ def AVscan(scantype: Literal["domain", "file", "ipaddress", "url_light", "url_he
                         detail="This service doesnt exist"
                     )
         
-
-#abuselpdb can only do ip address scans
 def ABPDBscan(target: IPv4Address|IPv6Address, age: int, id_detail: str):
     ABPDBresult = scan_ip_apdb(target_ip=target, report_age=age)
     ABDBresult_temp = scan_response_template(result=ABPDBresult, service="AbuselPDB", scan_type="IPaddress", id_detail=id_detail)
@@ -170,19 +167,18 @@ api = FastAPI(
 
 @api.post("/ipscans")
 def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
-    print(f"The request looks like {request}")
     is_admin = False
     authenticate_user(request=request, db=db)
     
     user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
+    
     if authorize_user(request=request, db=db) is True:
         is_admin = True
 
     if request.scan_type == "custom":
         results = []
         for service in request.scan_engines:
-            print("It is matching the services now")
             match service:
                 case "abuselpdb":
                     ABPDBresult = ABPDBscan(target=request.target_ip, age=request.report_age, id_detail=request.ip_id)
