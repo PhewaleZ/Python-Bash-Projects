@@ -31,7 +31,7 @@ def admin_log(data, detail: Literal["new_user", "password_change", "up_priv", "d
                         }}
     return log
 
-def scan_log(subject_name, scan_result: dict):
+def scan_log(subject_name: str, scan_result: dict):
     log = {"Data": {
         "Effect": f"A scan has been done",
         "Done_by": subject_name,
@@ -44,15 +44,16 @@ def create_log(log_type: Literal["administrative", "scan_result"], log_detail: L
     log_dict = {}
     match log_type:
         case "administrative": 
-            log_dict = admin_log(data=admin_data, subject_name=subject_name, detail=log_detail) # pyright: ignore[reportArgumentType] This error will not occur
-
+            assert log_detail != "standard_scan"
+            log = admin_log(data=admin_data, subject_name=subject_name, detail=log_detail) 
         case "scan_result":
-            log_dict = scan_log( subject_name=subject_name, scan_result=scan_result)
+            assert log_detail == "standard_scan"
+            log = scan_log( subject_name=subject_name, scan_result=scan_result)
 
-    log_obj = Log(user_id=subject_id, data=log_dict)
+    log_obj = Log(user_id=subject_id, data=log)
     record_log(db=db, log_obj=log_obj)
     
-def export_logs(db, target_userid="",retrieve_all=False):
+def export_logs(db,retrieve_all: bool,target_userid=""):
 
     if retrieve_all is True:
         all_logs = retrieve_all_logs(db=db)

@@ -35,8 +35,8 @@ def change_user_key(db: Session, target_username: str, new_key: str):
     db.execute(query)
     db.commit()
 
-def change_user_privilege(db:Session, target_username: str, admn_priv: bool):
-    query = update(User).where(User.username == target_username).values(is_admin=admn_priv)
+def change_user_privilege(db:Session, target_username: str, admn_privilege: bool):
+    query = update(User).where(User.username == target_username).values(is_admin=admn_privilege)
     db.execute(query)
     db.commit()
 
@@ -66,7 +66,7 @@ def retrieve_all_logs(db:Session):
 
     return result
 
-def retrieve_user_logs(db:Session, target_userid):
+def retrieve_user_logs(db:Session, target_userid:str):
     query = db.query(Log.data, Log.timestamp, Log.user_id, Log.log_id).where(Log.user_id == target_userid)
     result = db.execute(query)
     result = result.mappings().all()
