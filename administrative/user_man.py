@@ -24,11 +24,13 @@ def authenticate_authorize() -> tuple[bool, None|str]:
     key = getpass.getpass("key(Input is hidden): ")
 
     key_in_db = search_user_key(db=db, username=username)
-
     if key_in_db is None:
-        key_in_db = "dummy".encode()
+        salt = bcrypt.gensalt()
+        key_in_db = bcrypt.hashpw(password="dummy".encode(), salt=salt)
+    else:
+        key_in_db = key_in_db.encode()
 
-    key = key.encode()
+    key = key.encode() 
     is_authenticated = bcrypt.checkpw(password=key, hashed_password=key_in_db)
 
     if is_authenticated is False:
@@ -57,6 +59,7 @@ def create_user():
         print(abort_opt)
         print("Usernames will have white space removed automatically")
         prop_username = input("What is the proposed username of the user?\n").strip()
+        prop_username = "".join(prop_username.split())
         #The return key function is used as if None is returned by the func, then the username doesnt exist
 
         if prop_username.lower() == "quit":
@@ -74,7 +77,7 @@ def create_user():
             continue
 
         while True:
-            prop_key =getpass.getpass("What is the proposed key of the user: ")
+            prop_key =getpass.getpass("What is the proposed key of the user (Input is hidden): ")
 
             confirm = getpass.getpass("Input the same key again")
 
@@ -90,17 +93,17 @@ def create_user():
 
     while flag1 is True:
         print(abort_opt)
-        is_privilaged = input("Does this user have administrative privileges?[y/n]: ").lower()
+        is_privileged = input("Does this user have administrative privileges?[y/n]: ").lower()
 
-        if is_privilaged == "quit":
+        if is_privileged == "quit":
             print("Aborting")
             break
 
-        if is_privilaged not in confirm_options:
+        if is_privileged not in confirm_options:
             print("Select a valid option!")
             continue
 
-        if is_privilaged == "y":
+        if is_privileged == "y":
             is_admin = True
         else:
             is_admin = False
@@ -129,7 +132,7 @@ def create_user():
                         user_key = key,
                         is_admin = is_admin)
         add_user(db=db, user_obj=new_user)
-        print("The new user has been added")
+        print("The new user has been added \n \n \n \n \n")
 
         #NOTE:The username of the created user is returned for logging reasons
         return True, prop_username
@@ -167,13 +170,13 @@ def remove_user():
             return False, ""
         else:
             delete_user(db=db, target_username=target_user)
-            print("The user has been deleted")
+            print("The user has been deleted \n \n \n \n \n")
             #NOTE: The username of the deleted account is returned for logging purposes
             return True, target_user
 
     return False, ""
 
-def change_password():
+def change_key():
     flag1 = False
     while True:
         print(abort_opt)
@@ -209,7 +212,7 @@ def change_password():
 
         hashed_key = hash_key(password=prop_key)
         change_user_key(db=db, target_username=target_username, new_key=hashed_key)
-        print("The users key has been changed")
+        print("The users key has been changed \n \n \n \n \n")
         return True, target_username
     
     return False, ""
@@ -223,7 +226,7 @@ def list_administrators():
         admin_counter += 1
         print(f"{admin.user_id}  |  {admin.username}")
 
-    print(f"\nThe number of administrators is: {admin_counter}")
+    print(f"\nThe number of administrators is: {admin_counter} \n \n \n \n \n")
 
 #This function changes the privilages of an account
 def change_priv(logged_in_user:str):
@@ -269,12 +272,12 @@ def change_priv(logged_in_user:str):
             continue
         elif new_privilege == "n":
             is_up_priv = False
-            change_user_privilege(db=db, target_username=target_username, admn_priv=False)
+            change_user_privilege(db=db, target_username=target_username, admn_privilege=False)
         else:
             is_up_priv = True
-            change_user_privilege(db=db, target_username=target_username, admn_priv=True)
+            change_user_privilege(db=db, target_username=target_username, admn_privilege=True)
 
-        print("The users administrative privileges have been changed")
+        print("The users administrative privileges have been changed \n \n \n \n \n")
         return True, target_username, is_up_priv
     
     return False, ""
@@ -304,7 +307,7 @@ def main():
 
     while flag1 is True:
         try:
-            print("1. Add a user. \n2. Remove a user. \n3. Change a users password. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. retrieve all logs. \n7. retrieve a users logs \nInput '0' to exit.")
+            print("1. Add a user. \n2. Remove a user. \n3. Change a users key. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. retrieve all logs. \n7. retrieve a users logs \nInput '0' to exit.")
             choice = int(input("What would you like to do?: "))
         except ValueError:
             print("Select a valid number")
@@ -321,7 +324,7 @@ def main():
                     create_log(log_type="administrative", log_detail="deleted_user", admin_data=confirmation[1],subject_name=logged_in_username, subject_id=logged_in_user_id, db=db)
 
             case 3: 
-                confirmation = change_password()
+                confirmation = change_key()
                 if confirmation[0] is True:
                     create_log(log_type="administrative", log_detail="password_change", admin_data=confirmation[1],subject_name=logged_in_username, subject_id=logged_in_user_id, db=db)
 
@@ -333,20 +336,22 @@ def main():
                     else:
                         create_log(log_type="administrative", log_detail="down_priv", admin_data=confirmation[1],subject_name=logged_in_username, subject_id=logged_in_user_id, db=db)
 
-            case 5: list_administrators()
+            case 5:
+                list_administrators()
             case 6:
                 logs = export_logs(retrieve_all=True,db=db)
-                with open("testing_logs.json", "w") as file:
+                with open("logs.json", "w") as file:
                     json.dump(obj=logs, fp=file, indent=4)
 
-                print("All logs have been exported")
+                print("All logs have been exported \n \n \n \n \n")
 
             case 7:
                 while True:
                     print(abort_opt)
                     target_username = input("What is the username of the user whose logs you want to retrieve: ")
 
-                    if target_username.lower() == "quit": break
+                    if target_username.lower() == "quit":
+                        break
 
                     target_userid = search_user_id(db=db, target_username=target_username)
                     
@@ -354,15 +359,17 @@ def main():
                         print("This user doesnt exist")
                         continue
                     else: 
-                        logs = export_logs(db=db, target_userid=target_userid)
-                        with open("testing_userlogs.json", "w") as file:
+                        logs = export_logs(db=db, target_userid=target_userid, retrieve_all=False)
+                        with open("indvidual_logs.json", "w") as file:
                             json.dump(obj=logs, fp=file, indent=4)        
-                            print("All logs have been exported")
+                            print("All logs have been exported\n \n \n \n \n \n")
                         
             case 0: 
                 print("Exiting")
                 break
-            case _: print("Select a valid choice")
+            case _: 
+                print("Select a valid choice")
+                continue
 
 if __name__ == "__main__":
     main()
