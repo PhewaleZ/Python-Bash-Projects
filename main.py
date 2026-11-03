@@ -27,7 +27,8 @@ def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestL
 
     #NOTE: This is a security feature
     if hashed_key_in_db is None:
-        key_in_db = "dummy".encode()
+        salt = bcrypt.gensalt()
+        key_in_db = bcrypt.hashpw(password="dummy".encode(), salt=salt)
     else:
         key_in_db = hashed_key_in_db.encode() # pyright: ignore[reportAttributwAccessIssue]
 
