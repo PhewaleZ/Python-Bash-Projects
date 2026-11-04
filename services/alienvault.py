@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from os import getenv
 from typing import Literal
 from  ipaddress import IPv4Address, IPv6Address
-
+import json
 #NOTE: The parameter "target_detail" holds the actual target of the scan
 def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "HASH", "LIGHT_URL"], target_detail: str|IPv6Address|IPv4Address) -> tuple[bool, str|requests.Response]:
     url = ''
@@ -229,12 +229,15 @@ def scan_url_av(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -
     
 
 def testing_function():
-    result = scan_domain_av(target_domain="gmail.com")
-    #if result[0] is True:
-        #with open("AV_Domain_resp_example.json", "w") as f:
-        #    json.dump(result[1], fp=f, indent=2) # type: ignore
-    #else:
-        #print(f"An error has occured: {result[1]}")
+    API_KEY= getenv("AV_API_KEY")
+    header = {"X-OTX-API-KEY": API_KEY}
+    target=IPv4Address("8.8.8.8")
+
+    url=f"https://otx.alienvault.com/api/v1/indicators/IPv4/{target}/general"
+
+    response = requests.get(url=url, headers=header, timeout=10) # pyright: ignore[reportArgumentType]
+    with open("AV_ip_resp_example.json", "w") as f:
+            json.dump(response.json(), fp=f, indent=2) # type: ignore
     
 
 if __name__ == "__main__":

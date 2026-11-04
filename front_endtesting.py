@@ -4,21 +4,15 @@ import json
 import hashlib
 
 def main():
-    print("Take not that this is a testing bed to simplify the testing of the api wihtout using curl all the time")
-    #name = input("what is name?: ")
-    #key = input("What is the password: ")
-    #target_type = input("What type of scan is it\n")
-    #target_end = input("What is the target endpoint?: ")
-    #target = input("Put the target here\n")
-
     target_hash = hashlib.sha256(b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*").hexdigest()
 
     json_dict = {
-        "name": "phewale",
+        "username": "phewale",
         "key": "phewale",
-        "target_ip": "1.1.1.1",
+        "target_ip": "8.8.88",
         "ip_id": "This is a test of logging functionality",
-        "scan_engine": ["virustotal"]
+        "report_age": 90,
+        "scan_engines": ["abuSelPDB"]
     }
 
     try:
