@@ -3,22 +3,11 @@ from ipaddress import IPv4Address, IPv6Address
 from fastapi import HTTPException
 class IPRequest(BaseModel):
     username: str
-    scan_type: str = "custom"
     target_ip: IPv4Address | IPv6Address
     key: str
     ip_id: str = "Not Specified"
     scan_engines : list[str] = []
     report_age : int = 0
-    @field_validator("scan_type")
-    @classmethod
-    def check_scantype(cls, scan_type:str):
-        aval_scan_options = ["recon_ip_scan", "own_ip", "scan_ip", "custom"]
-        if scan_type not in aval_scan_options:
-            raise HTTPException(
-                status_code=422,
-                detail="The selected scan type doesnt exist or is invalid"
-            )
-        return scan_type
     
     @field_validator("scan_engines")
     @classmethod
@@ -27,11 +16,11 @@ class IPRequest(BaseModel):
         aval_scan_options = ["abuselpdb", "virustotal", "alienvault"]
         for option in scan_engines:
             #NOTE: This prevents the same scan engine being used over and over just because the user input it more than twice
-            if option in corrected_scan_engines:
+            if option.lower() in corrected_scan_engines:
                 continue
 
-            if option in aval_scan_options:
-                corrected_scan_engines.append(option)
+            if option.lower() in aval_scan_options:
+                corrected_scan_engines.append(option.lower())
 
         if not corrected_scan_engines:
             raise HTTPException(
