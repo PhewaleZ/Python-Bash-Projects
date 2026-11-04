@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends,HTTPException
 import bcrypt
 from database.db_functions import search_user_key,retrieve_user_authorization, search_user_id
 from database.database import get_db
-from services.ipinfoAPI import see_own_ip,check_ip
+from services.ipinfoAPI import Ipinfoscan
 from ipaddress import IPv4Address, IPv6Address
 from sqlalchemy.orm import Session
 from services.virustotal import scan_ip_domain_vt,scan_file_vt, scan_url_vt
@@ -14,15 +14,8 @@ from typing import Literal
 from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,DomainRequest
 from administrative.logging import create_log
 
-def authorize_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
-    #NOTE: This will be a boolean, the existence of the user is already confirmed
-    user_authorization = retrieve_user_authorization(db=db, username=request.username)
-        
-    return user_authorization
-
-
 def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
-    #NOTE: The keys are stored as strings in the databsae so encoding is necessary
+    #NOTE: The keys are stored as strings in the database so encoding is necessary
     hashed_key_in_db = search_user_key(db=db, username=request.username)
 
     #NOTE: This is a security feature
@@ -68,33 +61,6 @@ def scan_response_template(result: tuple[bool, str|dict], service: Literal["Ipin
         }
 
     return response
-
-
-#The age_option is meant to be used with abuselpdb to specify the age of pulled reports
-def ip_scan(target: IPv4Address|IPv6Address , type: Literal["recon_ip_scan", "own_ip", "scan_ip"], is_admin: bool, id_detail: str, age_option=0) -> dict:
-
-    match type:
-            case "recon_ip_scan":
-                ipinfo_result = check_ip(target_ip=target)
-                ipinfo_result_temp = scan_response_template(result=ipinfo_result, service="Ipinfo", scan_type="IPaddress", id_detail=id_detail)
-                return {"results": [ipinfo_result_temp]}
-            
-            case "own_ip":
-                if is_admin is False:
-                    raise HTTPException(
-                        status_code=401,
-                        detail="You are not authorized to do this"
-                    )
-                else:
-                    ipinfo_result = see_own_ip()
-                    ipinfo_result_temp = scan_response_template(result=ipinfo_result, service='Ipinfo', scan_type="IPaddress", id_detail=id_detail)
-                    return {"results": [ipinfo_result_temp]}
-
-            case "scan_ip":
-                VTresult = VTscan(scantype="ipaddress", target=target, id_detail=id_detail)
-                AVresult = AVscan(scantype="ipaddress", target=target, id_detail=id_detail)
-                ABPDBresult = ABPDBscan(target=target, age=age_option, id_detail=id_detail)
-                return {"results":[VTresult, AVresult, ABPDBresult]}
     
 def VTscan(scantype: Literal["domain", "file", "ipaddress", "url"], target: str|IPv6Address|IPv4Address, id_detail: str):
     match scantype:
@@ -159,7 +125,10 @@ def ABPDBscan(target: IPv4Address|IPv6Address, age: int, id_detail: str):
     ABPDBresult = scan_ip_apdb(target_ip=target, report_age=age)
     ABDBresult_temp = scan_response_template(result=ABPDBresult, service="AbuselPDB", scan_type="IPaddress", id_detail=id_detail)
     return ABDBresult_temp
-
+def IPinfoscan(target: IPv4Address|IPv6Address, id_detail: str):
+    IPinforesult = Ipinfoscan(target_ip=target)
+    IPinforesult_temp = scan_response_template(result=IPinforesult, service="Ipinfo", scan_type="IPaddress", id_detail=id_detail)
+    return IPinforesult_temp
 api = FastAPI(
     title="Cybersecurity API",
     description="This is me validating and improving my understanding of API's",
@@ -168,40 +137,33 @@ api = FastAPI(
 
 @api.post("/ipscans")
 def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
-    is_admin = False
+    results = []
     authenticate_user(request=request, db=db)
-    
     user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
-    
-    if authorize_user(request=request, db=db) is True:
-        is_admin = True
 
-    if request.scan_type == "custom":
-        results = []
-        for service in request.scan_engines:
-            match service:
-                case "abuselpdb":
-                    ABPDBresult = ABPDBscan(target=request.target_ip, age=request.report_age, id_detail=request.ip_id)
-                    results.append(ABPDBresult)
+    #NOTE: An IPINFO result is always returned by this endpoint as it is free and has very few restrictions
+    IPinforesult=IPinfoscan(target=request.target_ip,id_detail=request.ip_id)
+    results.append(IPinforesult)
 
-                case "virustotal":
-                    VTresult = VTscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
-                    results.append(VTresult)
+    for service in request.scan_engines:
+         match service:
+            case "abuselpdb":
+                ABPDBresult = ABPDBscan(target=request.target_ip, age=request.report_age, id_detail=request.ip_id)
+                results.append(ABPDBresult)
 
-                case "alienvault":
-                    AVresult = AVscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
-                    results.append(AVresult)
+            case "virustotal":
+                VTresult = VTscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
+                results.append(VTresult)
 
-        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results) # pyright: ignore[reportArgumentType]
+            case "alienvault":
+                AVresult = AVscan(scantype="ipaddress", target=request.target_ip, id_detail=request.ip_id)
+                results.append(AVresult)
 
-        return {"results": results}
-    else:
-        results = ip_scan(target=request.target_ip, type=request.scan_type, is_admin=is_admin, age_option=request.report_age)  # type: ignore
-        
-        create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db, scan_result=results)
+    create_log(log_type="scan_result", log_detail="standard_scan", subject_name=request.username, subject_id=user_id, db=db,scan_result=results)
 
-        return results
+    return {"results": results}
+
 
 @api.post("/filescans")
 def scan_file(request: FileRequest, db:Session = Depends(get_db)):

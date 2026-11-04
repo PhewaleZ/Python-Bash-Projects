@@ -5,7 +5,6 @@ import json
 from ipaddress import IPv4Address, IPv6Address
 
 
-#NOTE: error checking for an invalid IP address will be done way earlier into the api
 def make_request(API_KEY: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Address) -> tuple[bool, str|requests.Response]:
     last_error = ''
     url = ''
@@ -25,7 +24,6 @@ def make_request(API_KEY: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Addre
         except requests.exceptions.ConnectionError:
             return (False, "Could not connect to the IPINFO API server.")
         
-        #In this match case block, the first 2 cases are errors that if occur, there is no point in sending another request
         except requests.exceptions.HTTPError as e:
             if e.response is None:
                 return (False, str(e))
@@ -49,26 +47,7 @@ def make_request(API_KEY: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Addre
             return (True, response)
             
     return (False, last_error)
-
-def see_own_ip() -> tuple[bool, str|dict]:
-    load_dotenv()
-    API_KEY = getenv("IPINFO_API_KEY")
     
-    if API_KEY is None:
-        return (False, 'IPINFO api key is None')
-
-    #NOTE: that the parameter "target_ip" is set to 0 as it isnt relevant for scaning your own IP address
-    response_check = make_request(API_KEY=API_KEY, is_own_ip=False, target_ip=IPv4Address(0))
-    
-    if response_check[0] is True:
-        assert not isinstance(response_check[1], str)
-        ipinfo_results = aggregate_results(rec_response=response_check[1])
-        return (True, ipinfo_results)
-    else:
-        return (False, response_check[1]) # pyright: ignore[reportReturnType]
-    
-
-
 def aggregate_results(rec_response: requests.Response) -> dict:
     json_rec_response = rec_response.json()
     
@@ -81,7 +60,7 @@ def aggregate_results(rec_response: requests.Response) -> dict:
     }
     return ipinfo_results
 
-def check_ip(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
+def Ipinfoscan(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
     load_dotenv()
     API_KEY = getenv("IPINFO_API_KEY")
     
@@ -95,7 +74,8 @@ def check_ip(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
         ipinfo_results = aggregate_results(rec_response=response_check[1])
         return (True, ipinfo_results)
     else:
-        return (False, response_check[1]) # pyright: ignore[reportReturnType]
+        assert isinstance(response_check[1], str)
+        return (False, response_check[1])
 
 
 #NOTE: This function acts as a testing function for what type of errors ipinfo's api returns as finding documentation from ipinfo direrctly was hard
