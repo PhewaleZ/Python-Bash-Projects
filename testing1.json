@@ -1,0 +1,24 @@
+{
+    "detail": [
+        {
+            "type": "ip_v4_address",
+            "loc": [
+                "body",
+                "target_ip",
+                "lax-or-strict[lax=function-plain[ip_v4_address_validator()],strict=json-or-python[json=function-after[IPv4Address(), str],python=is-instance[IPv4Address]]]"
+            ],
+            "msg": "Input is not a valid IPv4 address",
+            "input": "8.8.88"
+        },
+        {
+            "type": "ip_v6_address",
+            "loc": [
+                "body",
+                "target_ip",
+                "lax-or-strict[lax=function-plain[ip_v6_address_validator()],strict=json-or-python[json=function-after[IPv6Address(), str],python=is-instance[IPv6Address]]]"
+            ],
+            "msg": "Input is not a valid IPv6 address",
+            "input": "8.8.88"
+        }
+    ]
+}
