@@ -9,14 +9,13 @@ def main():
     json_dict = {
         "username": "phewale",
         "key": "phewale",
-        "target_ip": "8.8.88",
-        "ip_id": "This is a test of logging functionality",
+        "target_domain": "jeremysitlab.com",
         "report_age": 90,
-        "scan_engines": ["abuSelPDB"]
+        "scan_engines": ["alinvault"]
     }
 
     try:
-        rec_response = make_request(target_endpoint="ipscans", le_dict=json_dict)
+        rec_response = make_request(target_endpoint="domainscans", le_dict=json_dict)
         print(f"The http status is: {rec_response.status_code}, information is: {rec_response.reason}")
 
         with open("testing1.json", "w") as file:
