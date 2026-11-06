@@ -42,11 +42,11 @@ class FileRequest(BaseModel):
         corrected_scan_engines = []
         aval_scan_options = ["virustotal", "alienvault"]
         for option in scan_engines:
-            if option in corrected_scan_engines:
+            if option.lower() in corrected_scan_engines:
                 continue
             
-            if option in aval_scan_options:
-                corrected_scan_engines.append(option)
+            if option.lower() in aval_scan_options:
+                corrected_scan_engines.append(option.lower())
 
         if not corrected_scan_engines:
             raise HTTPException(
@@ -67,12 +67,12 @@ class URLRequestLight(BaseModel):
     def check_scan_engine(cls, scan_engines:list[str]):
         corrected_scan_engines = []
         aval_scan_options = ["virustotal", "alienvault"]
-        for element in scan_engines:
-            if element in corrected_scan_engines:
+        for option in scan_engines:
+            if option.lower() in corrected_scan_engines:
                 continue
             
-            if element in aval_scan_options:
-                corrected_scan_engines.append(element)
+            if option.lower() in aval_scan_options:
+                corrected_scan_engines.append(option.lower())
 
         if not corrected_scan_engines:
             raise HTTPException(
@@ -100,11 +100,11 @@ class DomainRequest(BaseModel):
         aval_scan_options = ["alienvault", "virustotal"]
         corrected_options = []
         for option in scan_engines:
-            if option in corrected_options:
+            if option.lower() in corrected_options:
                 continue
             
-            if option in aval_scan_options:
-                corrected_options.append(option)
+            if option.lower() in aval_scan_options:
+                corrected_options.append(option.lower())
         
         if not corrected_options:
             raise HTTPException(
