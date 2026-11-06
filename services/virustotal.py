@@ -3,8 +3,8 @@ import os
 from dotenv import load_dotenv
 from time import sleep
 from ipaddress import IPv4Address, IPv6Address
-from typing import Literal, Any
-
+from typing import Literal
+import json
 #This function is what makes the HTTP request and validates it and returns if it is the expected response or an error
 def send_request(url: str, headers: dict, payload={}, is_url=False) -> tuple[ bool, str | requests.Response]:
     last_error = "Unknown"
@@ -152,7 +152,7 @@ def scan_file_vt(file_hash: str, target_file_name:str) -> tuple[bool, str|dict]:
 
 def aggregate_vt_results_filehash(rec_response: requests.Response,target_name: str) -> dict:
     warning: list[str] = []
-
+    
     json_rec_response = rec_response.json()
     sigma_stats= json_rec_response["data"]["attributes"]["sigma_analysis_stats"]
     last_analysis_stats= json_rec_response["data"]["attributes"]["last_analysis_stats"]

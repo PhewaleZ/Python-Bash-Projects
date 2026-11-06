@@ -104,14 +104,16 @@ def scan_domain_av(target_domain: str) -> tuple[bool, str|dict]:
 
 def aggregate_av_results(rec_response: requests.Response) -> dict:
     json_rec_response = rec_response.json()
+    with open("sff.json", "w") as file:
+        json.dump(json_rec_response, fp=file, indent=4)
     details_of_pulses = []
     pulse_count = json_rec_response["pulse_info"]["count"]
 
     #NOTE: The key "base_indicator" is used to hint if AV actually had the target in its database
-    if json_rec_response["base_indicator"] is not None:
-        found = True
-    else:
+    if not json_rec_response["base_indicator"]:
         found = False
+    else:
+        found = True
 
     pulses = json_rec_response["pulse_info"]["pulses"]
 
@@ -121,6 +123,7 @@ def aggregate_av_results(rec_response: requests.Response) -> dict:
 
         details_of_pulses.append({"name":pulse_name,
                                   "id": pulse_id})
+        
     #NOTE: If less than 3 pulses are found then its treated as level 3, as the absence of evidence doesnt mean that the target is clean
     concern_lvl = ""
     match pulse_count:
@@ -207,7 +210,8 @@ def scan_url_av(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -
         if result_json.get("detail", {}) == "endpoint not found":
             return (False, "AV API couldnt find the endpoint")
         else:
-            AV_result = aggregate_av_results(rec_response=result_json)
+            #NOTE:The variable result_json isnt passed on here as it is only used for the above if statement
+            AV_result = aggregate_av_results(rec_response=result_check[1])
             return (True, AV_result)
 
     else:
@@ -221,7 +225,7 @@ def scan_url_av(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -
             result_json = result_check[1].json() 
 
         #NOTE: The variable is deliberately overwritten
-        if result_json.get("status", {}) == "ok": #type: ignore
+        if result_json.get("status", {}) == "ok":
             link = {"result_link" : "https://otx.alienvault.com/submissions/list"}
             return (True, link)
         else:
