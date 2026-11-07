@@ -1,6 +1,6 @@
 import bcrypt
 from database.db_schema import User
-from database.db_functions import add_user, delete_user, search_user_key, change_user_key, change_user_privilege, list_admin_users, search_user_id, retrieve_user_authorization
+from database.db_functions import add_user, delete_user, search_user_key, change_user_key, change_user_privilege, list_admin_users, search_user_id, retrieve_user_authorization, list_users
 from database.database import SessionLocal
 from .logging import create_log, export_logs
 import json
@@ -57,8 +57,8 @@ def create_user():
     prop_key = ""
     while True:
         print(abort_opt)
-        print("Usernames will have white space removed automatically")
-        prop_username = input("What is the proposed username of the user?\n").strip()
+        print("Usernames will have white space removed automatically and any uppercase will be converted to lowercase")
+        prop_username = input("What is the proposed username of the user?\n").strip().lower()
         prop_username = "".join(prop_username.split())
         #The return key function is used as if None is returned by the func, then the username doesnt exist
 
@@ -132,7 +132,7 @@ def create_user():
                         user_key = key,
                         is_admin = is_admin)
         add_user(db=db, user_obj=new_user)
-        print("The new user has been added \n \n \n \n \n")
+        print("\n \nThe new user has been added \n \n")
 
         #NOTE:The username of the created user is returned for logging reasons
         return True, prop_username
@@ -170,7 +170,7 @@ def remove_user():
             return False, ""
         else:
             delete_user(db=db, target_username=target_user)
-            print("The user has been deleted \n \n \n \n \n")
+            print("\n \nThe user has been deleted \n \n")
             #NOTE: The username of the deleted account is returned for logging purposes
             return True, target_user
 
@@ -197,7 +197,7 @@ def change_key():
 
     while flag1 is True:
         while True:
-            prop_key = getpass.getpass("What is the proposed key of the user: ")
+            prop_key = getpass.getpass("What is the proposed new key of the user: ")
         
             confirm = getpass.getpass("Input the same key again")
         
@@ -212,7 +212,7 @@ def change_key():
 
         hashed_key = hash_key(password=prop_key)
         change_user_key(db=db, target_username=target_username, new_key=hashed_key)
-        print("The users key has been changed \n \n \n \n \n")
+        print("\n \n The users key has been changed \n \n ")
         return True, target_username
     
     return False, ""
@@ -220,13 +220,24 @@ def change_key():
 def list_administrators():
     administrators=list_admin_users(db=db)
     admin_counter = 0
-    print("The list of administrators is as follows:")
+    print("\n\nThe list of administrators is as follows:")
     print(f"User ID | Username ")
     for admin in administrators:
         admin_counter += 1
         print(f"{admin.user_id}  |  {admin.username}")
 
-    print(f"\nThe number of administrators is: {admin_counter} \n \n \n \n \n")
+    print(f"\nThe number of administrators is: {admin_counter} \n \n")
+
+def list_all_users():
+    users = list_users(db=db)
+    user_counter = 0
+    print("\n\nThe list of users is as follows:")
+    print(f"User ID | Username ")
+    for user in users:
+        user_counter += 1
+        print(f"{user.user_id}  |  {user.username}")
+
+    print(f"\n\nThe number of users is: {user_counter} \n \n")
 
 #This function changes the privilages of an account
 def change_priv(logged_in_user:str):
@@ -255,7 +266,7 @@ def change_priv(logged_in_user:str):
             is_admin = retrieve_user_authorization(db=db, username=target_username)
 
             assert is_admin is not None
-            
+            print(f"is admin is: {is_admin}")
             print("This user is an administrator " if is_admin is True else "This user is not an administrator")
             break
 
@@ -277,7 +288,7 @@ def change_priv(logged_in_user:str):
             is_up_priv = True
             change_user_privilege(db=db, target_username=target_username, admn_privilege=True)
 
-        print("The users administrative privileges have been changed \n \n \n \n \n")
+        print("\n \nThe users administrative privileges have been changed \n \n")
         return True, target_username, is_up_priv
     
     return False, ""
@@ -307,7 +318,7 @@ def main():
 
     while flag1 is True:
         try:
-            print("1. Add a user. \n2. Remove a user. \n3. Change a users key. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. retrieve all logs. \n7. retrieve a users logs \nInput '0' to exit.")
+            print("1. Add a user. \n2. Remove a user. \n3. Change a users key. \n4. Change a Users privileges. \n5. Show all current administrators. \n6. Retrieve all logs. \n7. Retrieve a users logs \n8. List all users \nInput '0' to exit.")
             choice = int(input("What would you like to do?: "))
         except ValueError:
             print("Select a valid number")
@@ -338,12 +349,13 @@ def main():
 
             case 5:
                 list_administrators()
+
             case 6:
                 logs = export_logs(retrieve_all=True,db=db)
                 with open("logs.json", "w") as file:
                     json.dump(obj=logs, fp=file, indent=4)
 
-                print("All logs have been exported \n \n \n \n \n")
+                print("\n \nAll logs have been exported \n \n")
 
             case 7:
                 while True:
@@ -360,10 +372,13 @@ def main():
                         continue
                     else: 
                         logs = export_logs(db=db, target_userid=target_userid, retrieve_all=False)
-                        with open("indvidual_logs.json", "w") as file:
+                        with open("individual_logs.json", "w") as file:
                             json.dump(obj=logs, fp=file, indent=4)        
-                            print("All logs have been exported\n \n \n \n \n \n")
-                        
+                            print("\n \n All logs have been exported\n \n ")
+
+            case 8:
+                list_all_users()
+
             case 0: 
                 print("Exiting")
                 break
