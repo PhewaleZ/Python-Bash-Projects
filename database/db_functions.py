@@ -19,7 +19,7 @@ def search_user_key(db: Session, username: str):
 def retrieve_user_authorization(db: Session, username: str):
     query = db.query(User.is_admin).where(User.username==username)
     result = db.execute(query)
-    result = result.scalar_one_or_none
+    result = result.scalar()
 
     return result
 
@@ -42,6 +42,13 @@ def change_user_privilege(db:Session, target_username: str, admn_privilege: bool
 
 def list_admin_users(db:Session):
     query = db.query(User.username, User.user_id).where(User.is_admin == True)
+    result = db.execute(query)
+    list_of_users = result.all()
+
+    return list_of_users
+
+def list_users(db:Session):
+    query = db.query(User.username, User.user_id)
     result = db.execute(query)
     list_of_users = result.all()
 
