@@ -1,0 +1,8 @@
+./__pycache__
+.env
+.gitignore
+.front_endtesting.py
+./services/__pycache__
+./database/__pycache__
+./administrative/__pycache__
+./.vscode
