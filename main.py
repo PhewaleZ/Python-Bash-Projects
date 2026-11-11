@@ -2,7 +2,7 @@
 #NOTE: Changes the scan_ip_APDB functiion name and gave report_age a default value of 90 on the parameter
 from fastapi import FastAPI, Depends,HTTPException
 import bcrypt
-from database.db_functions import search_user_key,retrieve_user_authorization, search_user_id
+from database.db_functions import search_user_key, search_user_id
 from database.database import get_db
 from services.ipinfoAPI import Ipinfoscan
 from ipaddress import IPv4Address, IPv6Address
@@ -132,7 +132,7 @@ def IPinfoscan(target: IPv4Address|IPv6Address, id_detail: str):
 api = FastAPI(
     title="Cybersecurity API",
     description="This is me validating and improving my understanding of API's",
-    version="1.0.1"
+    version="1.0"
 )
 
 @api.post("/ipscans")

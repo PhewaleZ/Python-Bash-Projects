@@ -38,7 +38,7 @@ Throughout the development of this project, I have been able to advance my knowl
 
 As part of my journey into the domain of cybersecurity and programming, I learned the importance of threat intelligence and software which can provide meaningful information. I then developed an interest in the development of these software and their role in cybersecurity and as this interest grew my knowledge and interest in API design was also expanding. It didn't take long before I identified a problem:
 
-**How much time is spent constantly accessing and logging into websites such as IPinfo to just specify an Ip address then leave onto the next website?**
+**How much time is spent constantly accessing and logging into websites such as IPinfo to just specify an IP address then leave onto the next website?**
 
 In response to this I decided to create a central software which could simplify the tedious process and allow threat intelligence to be conducted from anywhere as long as internet connectivity is provided.
 
@@ -102,6 +102,27 @@ The names are indicative of their purpose, for further clarification, the "urlsc
 
 "lighscans", this endpoint supports virustotal and alienvault, is much less comprehensive, quicker and returns an actual analysis.
 
+## Security Features
+
+Security measures should be implemented at all relevant layers, not just at the physical device itself. To adhere to this general guideline, I have taken several decisions to help bolster the security of the software such as:
+
+- Logging is implemented
+- Secure .env file handling
+- Password enumeration mitigation techniques
+- multilayered security
+- Storing keys as hashes
+- masked input fields for password input
+
+A threat may attempt to acquire information on whether or not a specific user is in the database, to help combat this, if a username does not exist, a "dummy" password is hashed and passed into bcrypt.
+
+![Dummy-password-implementation](./screenshots/dummy%20password.png)
+
+This feature is also implemented in the user_man.py file.
+
+In the database, a user's respective key is stored as a hash, never plaintext. If the keys in the database are ever leaked attackers wont be able to easily decrypt the them, this would make the information less useful and minimize any impact to security.
+
+There are various other measures which help increase security throughout the software's code.
+
 ## Database
 
 The data to be stored in the database was relational as the ID's of users had to match an entry in the table of logs, because of this, a relational database is the prefered. This lead to me selected Postgresql due to my existing familiarity and its open source nature.
@@ -120,6 +141,8 @@ This database table can be demonstrated with the following:
 | user_key | string | $2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW | This holds the hash of the users password using bcrypt's Blowfish Cipher |
 | is_admin | boolean | False | This is used to determine if that specific user has administrative authorization |
 
+![Users-table](./screenshots/users%20table.png)
+
 ### Logs
 
 This database table holds logs relating to scans conducted by users or general administrative actions
@@ -137,6 +160,8 @@ The image above is an example of the a log entry in the logs table after being e
 
 The keys are modified when logs are extracted for clarity reasons.
 
+![Log-table](./screenshots/logs%20table.png)
+
 ## How to install
 
 The whole software is containerized with docker, simply running the following commands will start the application on your machine along with. If docker is not installed, I recommend following the instructions on the docker website.
@@ -146,3 +171,31 @@ The software makes use of Postgresql, so it is also required.
 sudo docker build -t cybersecurity-api .
 docker run --rm -it --env-file .env cybersecurity-api python database_init.py
 ```
+
+## What I learned
+
+Throughout the months I have spent creating this software I encountered various problems, each were an opportunity to learn something new.
+
+### Type Safety
+
+In the earlier iterations of the application, I frequently ignored pylance messages informing me that a variable may be unbound or a function may not return the specified variable type in all possible paths. I used this project as an opportunity to better understand static type checking and how to better utilize pylance to minimize logical errors in code where a variable doesn't belong to the anticipated type therefore catching errors before the code is run.
+
+### Exception Handling
+
+At the beginning, I struggled to code an appropriate flow of try/except blocks for handling instances where an HTTP request to an external API did not return a 200 status code. This gave me the chance to improve my understanding of try/except blocks as well as how to utilize "else" and "finally". I also had to learn more about the types of errors relating to the requests module and HTTP in general. I learned about 4xx status code class, their definition, when they are returned etc.
+
+### GitHub
+
+An important part of the project was github, and a result, my confidence and comfortability conducting a range of everyday github commands did improve.
+
+Examples of commonly used commands:
+
+- git add
+- git commit
+- git log
+- git branch
+- git merge
+
+### Docker
+
+NOTE: Add this last after the application is fully containerized and easy to run
