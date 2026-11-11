@@ -87,7 +87,9 @@ This subdirectory contains a 3 important files:
 
 ## Endpoint structure
 
-There are 6 endpoints and they all exclusively accept POST requests, their respective paths are:
+There are 6 endpoints, which all follow RESTful API design guidelines.
+
+All 6 exclusively accept POST requests, their respective paths are:
 
 - /filescans
 - /domainscans
@@ -100,12 +102,47 @@ The names are indicative of their purpose, for further clarification, the "urlsc
 
 "lighscans", this endpoint supports virustotal and alienvault, is much less comprehensive, quicker and returns an actual analysis.
 
+## Database
+
+The data to be stored in the database was relational as the ID's of users had to match an entry in the table of logs, because of this, a relational database is the prefered. This lead to me selected Postgresql due to my existing familiarity and its open source nature.
+For more information on the tables refer to the "db_schema.py" file in the "services" subdirectory.
+
+More information on the two tables I have used is below.
+
+### Users
+
+This database table can be demonstrated with the following:
+
+| Column name | Data type | Example | Column Purpose |
+| --- | --- | --- | --- |
+| username | string | Alex_Donald | This stores the username |
+| User_id (Primary Key) | UUID7 | 01809424-3e59-7c05-9219-566f82fff672 | This stores the unique ID of a user |
+| user_key | string | $2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW | This holds the hash of the users password using bcrypt's Blowfish Cipher |
+| is_admin | boolean | False | This is used to determine if that specific user has administrative authorization |
+
+### Logs
+
+This database table holds logs relating to scans conducted by users or general administrative actions
+
+| Column name | Data type | Example | Column Purpose |
+| --- | --- | --- | --- |
+| user_id | uuid7 | 01809424-3e59-7c05-9219-566f82fff672 | This references the primary key of a user in the users table |
+| timestamp | datetime (From sqlalchemy) | YYYY-MM-DD HH24:MI:SS | This holds the time that the log was recorded |
+| data | JSON (string) | General JSON file highlighting the action and subject | This column stores the details of the action that occured |
+| log_id | uuid7 | 18909424-4d34-7805-9219-aggf82fff672 | this holds the unique ID of that log |
+
+![Log-data-example](./screenshots/example%20of%20log%20data.png)
+
+The image above is an example of the a log entry in the logs table after being extracted by a function through the user_man.py file.
+
+The keys are modified when logs are extracted for clarity reasons.
+
 ## How to install
 
 The whole software is containerized with docker, simply running the following commands will start the application on your machine along with. If docker is not installed, I recommend following the instructions on the docker website.
 The software makes use of Postgresql, so it is also required.
 
 ```bash
-sudo docker build -t cybersecurity-api
-docker run --rm -it --env-file .env cyber-api python database_init.py
+sudo docker build -t cybersecurity-api .
+docker run --rm -it --env-file .env cybersecurity-api python database_init.py
 ```
