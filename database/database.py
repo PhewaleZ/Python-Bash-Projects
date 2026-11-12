@@ -4,8 +4,12 @@ from dotenv import load_dotenv
 from os import getenv
 
 load_dotenv()
-POSTGRES_PASSWORD =getenv("POSTGRES_PASS")
-DATABASE_URL = f"postgresql+psycopg://postgres:{POSTGRES_PASSWORD}@localhost:5432/cybersecurity_api"
+POSTGRES_PASS = getenv("POSTGRES_PASS")
+DATABASE_NAME = getenv("DATABASE_NAME")
+POSTGRES_USER =  getenv("POSTGRES_USER")
+POSTGRES_HOSTNAME = getenv("POSTGRES_HOSTNAME")
+DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASS}@{POSTGRES_HOSTNAME}:5432/{DATABASE_NAME}"
+
 
 engine = create_engine(DATABASE_URL)
 
