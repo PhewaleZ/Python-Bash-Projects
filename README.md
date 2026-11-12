@@ -172,7 +172,7 @@ sudo docker build -t cybersecurity-api .
 docker run --rm -it --env-file .env cybersecurity-api python database_init.py
 ```
 
-## What I learned
+## Lessons Learned
 
 Throughout the months I have spent creating this software I encountered various problems, each were an opportunity to learn something new.
 
@@ -186,9 +186,9 @@ At the beginning, I struggled to code an appropriate flow of try/except blocks f
 
 ### GitHub
 
-An important part of the project was github, and a result, my confidence and comfortability conducting a range of everyday github commands did improve.
+An important part of the project was github, and as a result, my confidence and comfortability conducting a range of everyday github commands did improve.
 
-Examples of commonly used commands:
+Examples of commands I commonly used:
 
 - git add
 - git commit
@@ -196,6 +196,20 @@ Examples of commonly used commands:
 - git branch
 - git merge
 
+### Modular Programming
+
+Ensuring that functions from multiple seperate files and in seperate directories proved to be a new learning opportunity as prior to this project I had only conducted a modular programming on a smaller scale. Creating reusable functions and easy to debug as well as maintain modules, helped me better understand how to write code capable of integrating well with external software and other pieces of code internally.
+
 ### Docker
 
 NOTE: Add this last after the application is fully containerized and easy to run
+
+## Potential Improvements
+
+### Async Functions
+
+To help provide more stable server-side responses if the scale of the project increases, Incorporating asynchronus functions will allow other tasks and requests to be processed as the software awaits the result of a scan from an external API. This would allow for better and mroe efficient usage of computing resources and allow the software to better accomodate a large number of users.
+
+### User Interface
+
+Instead of having users conduct a post request with the linux command curl or any other alternative, providing a us interface whether CLI or GUI, would allow less tech-savvy to better understand how to make use of the software. Making the software more accessible results in a shallower learning curve, allowing individuals to quickly make use of the software without the need for complex explanations or training.
