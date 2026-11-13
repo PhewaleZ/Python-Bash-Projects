@@ -1,0 +1,45 @@
+{
+    "results": [
+        {
+            "Result": {
+                "id": "Not Specified",
+                "service": "Ipinfo",
+                "scan_type": "IPaddress",
+                "Status": "Successful",
+                "Data": {
+                    "IP Address": "8.8.8.8",
+                    "asn_code": "AS15169",
+                    "as_name": "Google LLC",
+                    "as_domain": "google.com",
+                    "country": "United States"
+                }
+            }
+        },
+        {
+            "Result": {
+                "id": "Not Specified",
+                "service": "Virustotal",
+                "scan_type": "IPaddress",
+                "Status": "Successful",
+                "Data": {
+                    "target": "8.8.8.8",
+                    "warnings": [],
+                    "details": {
+                        "level3": {
+                            "count": 38,
+                            "ratio": 0.41
+                        },
+                        "level2": {
+                            "count": 53,
+                            "ratio": 0.58
+                        },
+                        "level1": {
+                            "count": 1,
+                            "ratio": 0.01
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
