@@ -56,7 +56,6 @@ Within this file, the expected format of the json in the body of the HTTP reques
 There is a general format which is present in all:
 
 - username
-- key
 - target
 - optional id
 - scan engines to be used
@@ -164,16 +163,22 @@ The keys are modified when logs are extracted for clarity reasons.
 
 ## How to install
 
-The whole software is containerized with docker, simply running the following commands will start the application on your machine along with. If docker is not installed, I recommend following the instructions on the docker website.
-The software makes use of Postgresql, so it is also required.
+The whole software is containerized with docker, simply running the following command will start the application on your machine. If docker is not installed, I recommend following the instructions on the docker website.
+Installing Postgresql is NOT requred, their is already a container with a docker image included.
+
+1. Rename the .env.example file to .env
+2. Fill out all te environmental variables, (Please note, you will need to register with the relevant external API's to acquire your own keys)
+3. Run the command below
 
 ```bash
 docker compose up --build -d
 ```
 
+NOTE: If the credentials for the initial user do not already exist, it will be created each time the above command is run, therfore avoid constantly changing it each time the command is run
+
 ## Lessons Learned
 
-Throughout the months I have spent creating this software I encountered various problems, each were an opportunity to learn something new.
+Throughout the months I have spent creating this software, I have encountered various problems, each were an opportunity to learn something new.
 
 ### Type Safety
 
@@ -201,7 +206,15 @@ Ensuring that functions from multiple seperate files and in seperate directories
 
 ### Docker
 
-NOTE: Add this last after the application is fully containerized and easy to run
+To help ensure that the application could be easily start up by anyone, containerization was required. I chose docker due to it being widely used. I learned a variety of docker commands and relating to building images and managing containers, such as:
+
+```bash
+docker image
+docker ps
+docker logs
+```
+
+In addition, the incorporation of a yaml file allowed me to also acquire hands on experience with automating the deployment of docker containers.
 
 ## Potential Improvements
 
