@@ -4,7 +4,6 @@ from fastapi import HTTPException
 class IPRequest(BaseModel):
     username: str
     target_ip: IPv4Address | IPv6Address
-    key: str
     ip_id: str = "Not Specified"
     scan_engines : list[str] = []
     report_age : int = 0
@@ -33,7 +32,6 @@ class IPRequest(BaseModel):
 class FileRequest(BaseModel):
     username: str
     target_hash: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
-    key: str
     file_id:str = "Not Specified"
     scan_engines: list[str]
     @field_validator("scan_engines")
@@ -58,7 +56,6 @@ class FileRequest(BaseModel):
 
 class URLRequestLight(BaseModel):
     username: str
-    key: str
     url_id: str="Not Specified"
     target_url: str
     scan_engines: list[str]
@@ -84,13 +81,11 @@ class URLRequestLight(BaseModel):
 
 class URLRequestHeavy(BaseModel):
     username: str
-    key: str
     url_id: str="Not Specified"
     target_url: str
 
 class DomainRequest(BaseModel):
     username: str
-    key: str
     domain_id: str="Not Specified"
     target_domain: str
     scan_engines: list[str]

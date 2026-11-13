@@ -1,6 +1,5 @@
-#NOTE: The hostname scanning functionality has been removed, implment its removal here too
-#NOTE: Changes the scan_ip_APDB functiion name and gave report_age a default value of 90 on the parameter
-from fastapi import FastAPI, Depends,HTTPException
+from fastapi import FastAPI, Depends,HTTPException, Security
+from fastapi.security import APIKeyHeader
 import bcrypt
 from database.db_functions import search_user_key, search_user_id
 from database.database import get_db
@@ -10,14 +9,14 @@ from sqlalchemy.orm import Session
 from services.virustotal import scan_ip_domain_vt,scan_file_vt, scan_url_vt
 from services.alienvault import scan_ip_av,scan_file_av, scan_url_av, scan_domain_av
 from services.abuselpdb import scan_ip_apdb
-from typing import Literal
+from typing import Literal, Any
 from pyd_models import IPRequest,FileRequest,URLRequestHeavy,URLRequestLight,DomainRequest
 from administrative.logging import create_log
 
-def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, db: Session):
+def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestLight|DomainRequest, APIKey: str,db: Session):
     #NOTE: The keys are stored as strings in the database so encoding is necessary
     hashed_key_in_db = search_user_key(db=db, username=request.username)
-
+    print(f"The password in the database is: {hashed_key_in_db}")  
     #NOTE: This is a security feature
     if hashed_key_in_db is None:
         salt = bcrypt.gensalt()
@@ -25,9 +24,11 @@ def authenticate_user(request: IPRequest|FileRequest|URLRequestHeavy|URLRequestL
     else:
         key_in_db = hashed_key_in_db.encode() # pyright: ignore[reportAttributwAccessIssue]
 
-    byte_pass = request.key.encode()
-
+    byte_pass = APIKey.encode()
+    print("The byte password is ", byte_pass)
     check = bcrypt.checkpw(password=byte_pass, hashed_password=key_in_db)
+    
+    print("The check was: ")
 
     if check is False:
          raise HTTPException(
@@ -136,9 +137,10 @@ api = FastAPI(
 )
 
 @api.post("/ipscans")
-def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
+def scan_ip(request: IPRequest, APIKey=Security(APIKeyHeader(name="X-API-KEY")),db:Session = Depends(get_db)):
+    print(f"The recieved api key was: {APIKey}")
     results = []
-    authenticate_user(request=request, db=db)
+    authenticate_user(request=request, db=db, APIKey=APIKey)
     user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
 
@@ -166,9 +168,9 @@ def scan_ip(request: IPRequest, db:Session = Depends(get_db)):
 
 
 @api.post("/filescans")
-def scan_file(request: FileRequest, db:Session = Depends(get_db)):
+def scan_file(request: FileRequest, APIKey=Security(APIKeyHeader(name="X-API-KEY")),db:Session = Depends(get_db)):
     results = []
-    authenticate_user(request=request, db=db)
+    authenticate_user(request=request, db=db, APIKey=APIKey)
     user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
     for option in request.scan_engines:
@@ -185,9 +187,9 @@ def scan_file(request: FileRequest, db:Session = Depends(get_db)):
     return {"results": results}
 
 @api.post("/urlscans/lightscans")
-def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
+def scanurl_light(request: URLRequestLight,APIKey=Security(APIKeyHeader(name="X-API-KEY")), db:Session = Depends(get_db)):
     results = []
-    authenticate_user(request=request, db=db)
+    authenticate_user(request=request, db=db, APIKey=APIKey)
 
     user_id = search_user_id(db=db, target_username=request.username)
 
@@ -206,8 +208,8 @@ def scanurl_light(request: URLRequestLight, db:Session = Depends(get_db)):
     return {"results": results}
 
 @api.post("/urlscans/heavyscans")
-def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
-    authenticate_user(request=request, db=db)
+def scanurl_heavy(request: URLRequestHeavy, APIKey=Security(APIKeyHeader(name="X-API-KEY")),db: Session = Depends(get_db)):
+    authenticate_user(request=request, db=db, APIKey=APIKey)
 
     user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None
@@ -219,8 +221,8 @@ def scanurl_heavy(request: URLRequestHeavy, db: Session = Depends(get_db)):
     return {"results": AVresult}
 
 @api.post("/domainscans")
-def scan_domain(request: DomainRequest, db: Session = Depends(get_db)):
-    authenticate_user(request=request, db=db)
+def scan_domain(request: DomainRequest, APIKey=Security(APIKeyHeader(name="X-API-KEY")),db: Session = Depends(get_db)):
+    authenticate_user(request=request, db=db, APIKey=APIKey)
 
     user_id = search_user_id(db=db, target_username=request.username)
     assert user_id is not None

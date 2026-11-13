@@ -2,7 +2,7 @@ from database.db_schema import User,Base,Log
 import bcrypt
 from database.database import SessionLocal, engine
 from os import getenv
-
+from sqlalchemy.exc import IntegrityError
 def initialize_database():
     username = getenv("INITIAL_USERNAME")
     password= getenv("INITIAL_PASSWORD")
@@ -28,6 +28,9 @@ def initialize_database():
         db.add(user)
         db.commit()
 
+    #This part prevents any error caused by the intended "first account" already existing
+    except IntegrityError:
+        pass
     finally:
         db.close()
 

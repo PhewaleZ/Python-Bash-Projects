@@ -7,11 +7,10 @@ def main():
     target_hash = hashlib.sha256(b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*").hexdigest()
 
     json_dict = {
-        "username": "Phewale",
-        "key": "password",
-        "target_ip": "8.8.8.8",
+        "username": "phewale",
+        "target_ip": "13.247.7.4",
         "report_age": 90,
-        "scan_engines": ["virustotal"]
+        "scan_engines": ["virustotal", "abuselpdb"]
     }
 
     try:
@@ -29,7 +28,9 @@ def main():
 
 def make_request(target_endpoint, le_dict):
     response = requests.post(url=f"http://127.0.0.1:8000/{target_endpoint}",
-                             json=le_dict, timeout=15, headers={"accept": "application/json"})
+                             json=le_dict, timeout=15, headers={
+                                 "accept": "application/json",
+                                 "X-API-KEY": "phewale"})
 
     return response
 
