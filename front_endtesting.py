@@ -7,15 +7,15 @@ def main():
     target_hash = hashlib.sha256(b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*").hexdigest()
 
     json_dict = {
-        "username": "phewale",
-        "key": "phewale",
-        "target_domain": "jeremysitlab.com",
+        "username": "Phewale",
+        "key": "password",
+        "target_ip": "8.8.8.8",
         "report_age": 90,
-        "scan_engines": ["alinvault"]
+        "scan_engines": ["virustotal"]
     }
 
     try:
-        rec_response = make_request(target_endpoint="domainscans", le_dict=json_dict)
+        rec_response = make_request(target_endpoint="ipscans", le_dict=json_dict)
         print(f"The http status is: {rec_response.status_code}, information is: {rec_response.reason}")
 
         with open("testing1.json", "w") as file:
