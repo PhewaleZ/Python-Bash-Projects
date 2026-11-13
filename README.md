@@ -168,8 +168,7 @@ The whole software is containerized with docker, simply running the following co
 The software makes use of Postgresql, so it is also required.
 
 ```bash
-sudo docker build -t cybersecurity-api .
-docker run --rm -it --env-file .env cybersecurity-api python database_init.py
+docker compose up --build -d
 ```
 
 ## Lessons Learned
