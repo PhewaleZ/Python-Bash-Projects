@@ -1,0 +1,73 @@
+{
+    "results": [
+        {
+            "Result": {
+                "id": "Not Specified",
+                "service": "Ipinfo",
+                "scan_type": "IPaddress",
+                "Status": "Successful",
+                "Data": {
+                    "IP Address": "13.247.7.4",
+                    "asn_code": "AS16509",
+                    "as_name": "Amazon.com, Inc.",
+                    "as_domain": "amazon.com",
+                    "country": "South Africa"
+                }
+            }
+        },
+        {
+            "Result": {
+                "id": "Not Specified",
+                "service": "Virustotal",
+                "scan_type": "IPaddress",
+                "Status": "Successful",
+                "Data": {
+                    "target": "13.247.7.4",
+                    "warnings": [],
+                    "details": {
+                        "level3": {
+                            "count": 92,
+                            "ratio": 1.0
+                        },
+                        "level2": {
+                            "count": 0,
+                            "ratio": 0.0
+                        },
+                        "level1": {
+                            "count": 0,
+                            "ratio": 0.0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "Result": {
+                "id": "Not Specified",
+                "service": "AbuselPDB",
+                "scan_type": "IPaddress",
+                "Status": "Successful",
+                "Data": {
+                    "target_name": "13.247.7.4",
+                    "is_whitelist": false,
+                    "is_tor": false,
+                    "country_of_origin": "ZA",
+                    "is_whitelisted": false,
+                    "domain": "amazon.com",
+                    "concern": {
+                        "abusel_score": 0,
+                        "concern_value": "level 3"
+                    },
+                    "isp_details": {
+                        "isp_name": "Amazon Data Services South Africa",
+                        "isp_type": "Data Center/Web Hosting/Transit"
+                    },
+                    "report_details": {
+                        "report_count": 0,
+                        "reports": null
+                    }
+                }
+            }
+        }
+    ]
+}
