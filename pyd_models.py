@@ -7,10 +7,21 @@ class IPRequest(BaseModel):
     ip_id: str = "Not Specified"
     scan_engines : list[str] = []
     report_age : int = 0
+
+    @field_validator("target_ip")
+    @classmethod
+    def check_target_ip(cls, target_ip: IPv4Address | IPv6Address):
+        if not target_ip.is_global:
+            raise HTTPException(
+                status_code=422,
+                detail="The IP address provided is not a valid global IP addres"
+            )
+        else:
+            return target_ip
     
     @field_validator("scan_engines")
     @classmethod
-    def check_option1(cls, scan_engines:list[str]):
+    def check_scan_engines(cls, scan_engines:list[str]):
         corrected_scan_engines = []
         aval_scan_options = ["abuselpdb", "virustotal", "alienvault"]
         for option in scan_engines:
@@ -36,7 +47,7 @@ class FileRequest(BaseModel):
     scan_engines: list[str]
     @field_validator("scan_engines")
     @classmethod
-    def scantype_check(cls, scan_engines:list[str]):
+    def check_scan_engines(cls, scan_engines:list[str]):
         corrected_scan_engines = []
         aval_scan_options = ["virustotal", "alienvault"]
         for option in scan_engines:
@@ -61,7 +72,7 @@ class URLRequestLight(BaseModel):
     scan_engines: list[str]
     @field_validator("scan_engines")
     @classmethod
-    def check_scan_engine(cls, scan_engines:list[str]):
+    def check_scan_engines(cls, scan_engines:list[str]):
         corrected_scan_engines = []
         aval_scan_options = ["virustotal", "alienvault"]
         for option in scan_engines:
@@ -91,7 +102,7 @@ class DomainRequest(BaseModel):
     scan_engines: list[str]
     @field_validator("scan_engines")
     @classmethod
-    def check_scan_engine(cls, scan_engines: list[str]):
+    def check_scan_engines(cls, scan_engines: list[str]):
         aval_scan_options = ["alienvault", "virustotal"]
         corrected_options = []
         for option in scan_engines:

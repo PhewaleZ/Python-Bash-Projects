@@ -104,6 +104,7 @@ def aggregate_apdb_results(rec_response: requests.Response) -> dict:
 
     return formatted_response
 
+#NOTE: This function acts as a testing function for catching erros and evaluating abuselpdb's endpoine
 def testing_function():
     load_dotenv()
     API_key=getenv("ABUSELPDB_API_KEY")
