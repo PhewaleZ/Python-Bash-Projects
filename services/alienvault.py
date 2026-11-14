@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from os import getenv
 from typing import Literal
 from  ipaddress import IPv4Address, IPv6Address
-import json
 #NOTE: The parameter "target_detail" holds the actual target of the scan
 def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNAME", "HASH", "LIGHT_URL"], target_detail: str|IPv6Address|IPv4Address) -> tuple[bool, str|requests.Response]:
     url = ''
@@ -104,8 +103,6 @@ def scan_domain_av(target_domain: str) -> tuple[bool, str|dict]:
 
 def aggregate_av_results(rec_response: requests.Response) -> dict:
     json_rec_response = rec_response.json()
-    with open("sff.json", "w") as file:
-        json.dump(json_rec_response, fp=file, indent=4)
     details_of_pulses = []
     pulse_count = json_rec_response["pulse_info"]["count"]
 
@@ -231,7 +228,7 @@ def scan_url_av(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_URL"]) -
         else:
             return (False, "The url couldnt be submitted")
     
-
+#NOTE: This function acts as a testing function for catching erros and evaluating Alienvaults's endpoine
 def testing_function():
     API_KEY= getenv("AV_API_KEY")
     header = {"X-OTX-API-KEY": API_KEY}
