@@ -178,7 +178,7 @@ git clone https://github.com/PhewaleZ/cybersecurity-API-project.git
 ```
 
 - Rename the .env.example file to .env
-- Fill out all te environmental variables, (Please note, you will need to register with the relevant external API's to acquire your own keys)
+- Fill out all the environmental variables, (Please note, you will need to register with the relevant external API's to acquire your own keys)
 - Run the command below
 
 ```bash
