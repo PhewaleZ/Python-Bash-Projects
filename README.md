@@ -114,6 +114,8 @@ Security measures should be implemented at all relevant layers, not just at the 
 - Storing keys as hashes
 - masked input fields for password input
 
+For security reasons, any apikey which may or may not have appeared has been rotated
+
 A threat may attempt to acquire information on whether or not a specific user is in the database, to help combat this, if a username does not exist, a "dummy" password is hashed and passed into bcrypt.
 
 ![Dummy-password-implementation](./screenshots/dummy%20password.png)
