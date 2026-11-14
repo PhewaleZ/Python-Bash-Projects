@@ -78,7 +78,7 @@ def Ipinfoscan(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
         return (False, response_check[1])
 
 
-#NOTE: This function acts as a testing function for what type of errors ipinfo's api returns as finding documentation from ipinfo direrctly was hard
+#NOTE: This function acts as a testing function for catching erros and evaluating ipinfo's endpoine
 def testing_function():
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")

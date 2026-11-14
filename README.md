@@ -20,40 +20,41 @@
 
 This project is an API based project written with python using the FastAPI framework.
 
-My software is meant to allow for productivity gains by facilitating the process of conducting rudimentary threat intelligence lookup tasks, by sending an HTTP request to the appropriate endpoint. This project can be deployed onto any machine which has internet connectivity, only authorized users can then proceed to request any potential IOC be scanned and evaluated by pooling data from existing API's such as IPinfo, VirusTotal and Abuselpdb in a clean and formatted output as well as a general assessment based on the received data.
+My software is meant to allow for productivity gains by facilitating the process of conducting rudimentary threat intelligence lookup tasks, by sending an HTTP request to the appropriate endpoint. This project can be deployed onto any machine which has internet connectivity, only authorized users can then proceed to request any potential IOC be scanned and evaluated by pooling data from existing API's such as IPinfo, VirusTotal and Abuselpdb in a clean, formatted output as well as a general assessment based on the retrieved data.
 
-It should be noted that My API only provides an opinion as well as data meant to aid a cybersecurity professional or anyone interested in conducting threat intelligence lookup, best practices should always be followed and an assessment from a single source should not be treated as the be-all and end-all.
+It should be noted that My API only provides an opinion as well as data meant to aid a cybersecurity professional or anyone interested in conducting threat intelligence lookup, best practice guidelines should always be followed and an assessment from a single source should not be treated as the be-all and end-all.
 
 Throughout the development of this project, I have been able to advance my knowledge and understanding of the following:
 
-- Backend System Design
-- System Design Best Practices
+- Backend Systems
 - Data Interpretation and Fusion
 - Development of Secure Software
 - Git
 - Relational Databases (Postgresql)
-- Python
+- Python (FastAPI)
+- API's
 
 ## Why I designed it
 
-As part of my journey into the domain of cybersecurity and programming, I learned the importance of threat intelligence and software which can provide meaningful information. I then developed an interest in the development of these software and their role in cybersecurity and as this interest grew my knowledge and interest in API design was also expanding. It didn't take long before I identified a problem:
+As part of my journey into the domain of cybersecurity and programming, I learned the importance of threat intelligence and software which can provide meaningful information. I then developed an interest in the development of these software and their role in cybersecurity. As this interest grew, my knowledge and interest in API's was also expanding. It didn't take long before I identified a problem I believed I had the skills to attempt to mitigate:
 
 **How much time is spent constantly accessing and logging into websites such as IPinfo to just specify an IP address then leave onto the next website?**
 
-In response to this I decided to create a central software which could simplify the tedious process and allow threat intelligence to be conducted from anywhere as long as internet connectivity is provided.
+I decided to create a central software which could simplify the tedious process and allow threat intelligence to be conducted from anywhere as long as internet connectivity is provided.
 
 ## Directory Structure
 
-Within the top level directory of the project, I have taken on the effort to neatly organize code in an understandable and therefore scalable manner.
+The directory structure of the project is easy to follow and intuitive.
 
 ### main.py
 
-This is where the main API logic is kept and where the software is ran from.
+This is where the main API logic is kept and where the uvicorn runs from.
 
 ### pyd_models.py
 
 Within this file, the expected format of the json in the body of the HTTP request is specified.
-There is a general format which is present in all:
+
+There is a general HTTP json body format followed by all endpoints:
 
 - username
 - target
@@ -61,11 +62,12 @@ There is a general format which is present in all:
 - scan engines to be used
 
 Each endpoint expects a slightly differently named attribute but the general structure is universal.
-Measures are already in place to prevent duplicate scanning as well as occurences where no valid scan engine is specified.
+
+Measures are already in place to prevent duplicate scanning as well as instances where no valid scan engine is specified.
 
 ### services
 
-This subdirectory contains 4 python files which are used to interact with their respectice tool:
+This subdirectory contains 4 python files which are used to interact with their respectice external tool:
 
 - abuselpdb.py
 - alienvault.py
@@ -74,15 +76,15 @@ This subdirectory contains 4 python files which are used to interact with their 
 
 ### database
 
-This subdirectory contains all database related code such as the database schema and functions which create users as well as the function which returns the hash of a users key when required.
+This subdirectory contains all database related code such as the database schema and functions used to interact with the relational database
 
 ### administrative
 
-This subdirectory contains a 3 important files:
+This subdirectory contains 3 important files:
 
-- database_init.py, which is used to automatically create the database and all required tables
+- database_init.py, which is used to automatically create the database, all required tables and the first user
 - logging.py, which is used to create logs and write them into the database
-- user_man.py, which is used to perform administrative tasks such as changing a password, pulling logs related to a user, creating a user or even removing a user
+- user_man.py, which is used to perform administrative tasks relating to authorization, logs as well as the creation and deletion of users
 
 ## Endpoint structure
 
@@ -97,15 +99,15 @@ All 6 exclusively accept POST requests, their respective paths are:
 - /urlscans/lightscans
 
 The names are indicative of their purpose, for further clarification, the "urlscans" endpoint has two nested resources.
-"heavyscans" is sends the request to otx.alienvault.com for sandbox analysis and only a link to it is returned, it does not support any other scan engine such as virustotal
+"heavyscans" is sends the request to otx.alienvault.com for sandbox analysis and only a link to it is returned, it does not support any other scan engine such as virustotal.
 
-"lighscans", this endpoint supports virustotal and alienvault, is much less comprehensive, quicker and returns an actual analysis.
+"lighscans", this endpoint exclusively supports virustotal and alienvault, is much less comprehensive, quicker and returns an actual analysis.
 
 ## Security Features
 
 Security measures should be implemented at all relevant layers, not just at the physical device itself. To adhere to this general guideline, I have taken several decisions to help bolster the security of the software such as:
 
-- Logging is implemented
+- Implementation of logging
 - Secure .env file handling
 - Password enumeration mitigation techniques
 - multilayered security
@@ -118,14 +120,13 @@ A threat may attempt to acquire information on whether or not a specific user is
 
 This feature is also implemented in the user_man.py file.
 
-In the database, a user's respective key is stored as a hash, never plaintext. If the keys in the database are ever leaked attackers wont be able to easily decrypt the them, this would make the information less useful and minimize any impact to security.
+In the database, a user's respective key is stored as a hash, never plaintext. If the keys in the database are ever leaked attackers will not be able to easily decrypt them.
 
 There are various other measures which help increase security throughout the software's code.
 
 ## Database
 
-The data to be stored in the database was relational as the ID's of users had to match an entry in the table of logs, because of this, a relational database is the prefered. This lead to me selected Postgresql due to my existing familiarity and its open source nature.
-For more information on the tables refer to the "db_schema.py" file in the "services" subdirectory.
+The data to be stored in the database was relational as the ID's of users had to match an entry in the table of logs, because of this, a relational database is prefered. This lead to me selecting Postgresql due to my existing familiarity and its open source nature.
 
 More information on the two tables I have used is below.
 
@@ -138,7 +139,7 @@ This database table can be demonstrated with the following:
 | username | string | Alex_Donald | This stores the username |
 | User_id (Primary Key) | UUID7 | 01809424-3e59-7c05-9219-566f82fff672 | This stores the unique ID of a user |
 | user_key | string | $2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW | This holds the hash of the users password using bcrypt's Blowfish Cipher |
-| is_admin | boolean | False | This is used to determine if that specific user has administrative authorization |
+| is_admin | boolean | False | This is used to determine if that specific user has administrative authorization, mainly used by the user administration python file |
 
 ![Users-table](./screenshots/users%20table.png)
 
@@ -161,20 +162,55 @@ The keys are modified when logs are extracted for clarity reasons.
 
 ![Log-table](./screenshots/logs%20table.png)
 
-## How to install
+## How To Use
+
+### How to install
 
 The whole software is containerized with docker, simply running the following command will start the application on your machine. If docker is not installed, I recommend following the instructions on the docker website.
 Installing Postgresql is NOT requred, their is already a container with a docker image included.
 
-1. Rename the .env.example file to .env
-2. Fill out all te environmental variables, (Please note, you will need to register with the relevant external API's to acquire your own keys)
-3. Run the command below
+- Clone the repository with the command
 
 ```bash
-docker compose up --build -d
+git clone https://github.com/PhewaleZ/cybersecurity-API-project.git
 ```
 
-NOTE: If the credentials for the initial user do not already exist, it will be created each time the above command is run, therfore avoid constantly changing it each time the command is run
+- Rename the .env.example file to .env
+- Fill out all te environmental variables, (Please note, you will need to register with the relevant external API's to acquire your own keys)
+- Run the command below
+
+```bash
+sudo docker compose up --build -d
+```
+
+NOTE: If the credentials for the initial user do not already exist, it will be created each time the above command is run, therfore avoid constantly changing it each time the command is run.
+
+### Usage Instructions
+
+The postgresql database data persists, even if a container or image is deleted. If you wish to reset the volume, you can run the following command
+to shut down the running container and delete all data.
+
+```bash
+sudo docker compose down -v
+```
+
+To access the user_man.py file, which allows for administrative management, the following command will take you into the containers file system
+
+```bash
+sudo docker exec -it cyber_api bash
+```
+
+To run the user_man.py file, input the following command, from the main directory of the software
+
+```bash
+python -m administrative.user_man
+```
+
+### user_man.py
+
+credentials are required to access the administrative features such as creating a new user, changing a users administrative authorization and extracting logs.
+
+Upon filling out the environmental variable file, those same credentials wll create the first user with administrative privileges.
 
 ## Lessons Learned
 
@@ -225,3 +261,7 @@ To help provide more stable server-side responses if the scale of the project in
 ### User Interface
 
 Instead of having users conduct a post request with the linux command curl or any other alternative, providing a us interface whether CLI or GUI, would allow less tech-savvy to better understand how to make use of the software. Making the software more accessible results in a shallower learning curve, allowing individuals to quickly make use of the software without the need for complex explanations or training.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -132,7 +132,7 @@ def IPinfoscan(target: IPv4Address|IPv6Address, id_detail: str):
     return IPinforesult_temp
 api = FastAPI(
     title="Cybersecurity API",
-    description="This is me validating and improving my understanding of API's",
+    description="A cybersecurity IOC lookup API project made by 'Phewale Zembe'",
     version="1.0"
 )
 
