@@ -90,13 +90,15 @@ This subdirectory contains 3 important files:
 
 There are 6 endpoints, which all follow RESTful API design guidelines.
 
-All 6 exclusively accept POST requests, their respective paths are:
+All 6 exclusively accept POST requests, their respective paths and the API's they query are:
 
-- /filescans
-- /domainscans
-- /ipscans
-- /urlscans/heavyscans
-- /urlscans/lightscans
+- /filescans (VirusTotal, Alienvault)
+- /domainscans (VirusTotal, Alienvault)
+- /ipscans (Abuselpdb, Alienvault, VirusTotal, Ipinfo)
+- /urlscans/heavyscans (Alienvault)
+- /urlscans/lightscans (VirusTotal, Alienvault)
+
+For the "ipscans" endpoint ipinfo is included by default, you do not have to include it into the http request.
 
 The names are indicative of their purpose, for further clarification, the "urlscans" endpoint has two nested resources.
 "heavyscans" is sends the request to otx.alienvault.com for sandbox analysis and only a link to it is returned, it does not support any other scan engine such as virustotal.
@@ -169,12 +171,15 @@ The keys are modified when logs are extracted for clarity reasons.
 ### How to install
 
 The whole software is containerized with docker, simply running the following command will start the application on your machine. If docker is not installed, I recommend following the instructions on the docker website.
-Installing Postgresql is NOT requred, their is already a container with a docker image included.
+Installing Postgresql is NOT requred, there is already a container with a docker image included.
 
-- Clone the repository with the command
+NOTE: For some of these commands administrative privilieges may be required.
+
+- Clone the repository with the commands
 
 ```bash
 git clone https://github.com/PhewaleZ/cybersecurity-API-project.git
+cd cybersecurity-API-project
 ```
 
 - Rename the .env.example file to .env
@@ -182,12 +187,24 @@ git clone https://github.com/PhewaleZ/cybersecurity-API-project.git
 - Run the command below
 
 ```bash
-sudo docker compose up --build -d
+docker compose up --build -d
 ```
 
 NOTE: If the credentials for the initial user do not already exist, it will be created each time the above command is run, therfore avoid constantly changing it each time the command is run.
 
+- FastAPI's built-in documentation can be used to safely test out the endpoints, you can access the documentation with the following link once the containers are successfully running <http://127.0.0.1:8000/docs>
+- Before sending request you will have to provide your API key by pressing the Authorize button, which is the same key in your .env file and which was used to create the first user of the API
+- Select an endpoint then select "Try it out"
+
 ### Usage Instructions
+
+FastAPI's built-in documentation can be used to safely test out the endpoints, you can access the documentation with the following link once the containers are successfully running <http://127.0.0.1:8000/docs>.
+
+Before sending request you will have to provide your API key by pressing the Authorize button, which is the same key in your .env file and which was used to create the first user of the API.
+
+Select an endpoint then select "Try it out", take note that each the "scan_engines" field can should be populated with an external API which is actually queried by that endpoint. [Availiable-External-API](#endpoint-structure)
+
+![api-query-example](./screenshots/swagger-api-example.png)
 
 The postgresql database data persists, even if a container or image is deleted. If you wish to reset the volume, you can run the following command
 to shut down the running container and delete all data.
@@ -195,6 +212,8 @@ to shut down the running container and delete all data.
 ```bash
 sudo docker compose down -v
 ```
+
+### user_man.py
 
 To access the user_man.py file, which allows for administrative management, the following command will take you into the containers file system
 
@@ -208,15 +227,11 @@ To run the user_man.py file, input the following command, from the main director
 python -m administrative.user_man
 ```
 
-### user_man.py
-
 credentials are required to access the administrative features such as creating a new user, changing a users administrative authorization and extracting logs.
 
 Upon filling out the environmental variable file, those same credentials wll create the first user with administrative privileges.
 
 ## Lessons Learned
-
-Throughout the months I have spent creating this software, I have encountered various problems, each were an opportunity to learn something new.
 
 ### Type Safety
 
@@ -235,7 +250,7 @@ Examples of commands I commonly used:
 - git add
 - git commit
 - git log
-- git branch
+- git push
 - git merge
 
 ### Modular Programming
@@ -258,11 +273,15 @@ In addition, the incorporation of a yaml file allowed me to also acquire hands o
 
 ### Async Functions
 
-To help provide more stable server-side responses if the scale of the project increases, Incorporating asynchronus functions will allow other tasks and requests to be processed as the software awaits the result of a scan from an external API. This would allow for better and mroe efficient usage of computing resources and allow the software to better accomodate a large number of users.
+To help provide more stable, efficient, asynchronous server responses, incorporating asynchronus functions would allow requests to be sent to other external API's while awaiting a response from an already queried external API. This would allow for better and more efficient usage of computing resources and allow the software to better accomodate a large number of users. Async functions is something I will be eventually adding to the project once my understanding of asyncio module improves.
 
 ### User Interface
 
 Instead of having users conduct a post request with the linux command curl or any other alternative, providing a us interface whether CLI or GUI, would allow less tech-savvy to better understand how to make use of the software. Making the software more accessible results in a shallower learning curve, allowing individuals to quickly make use of the software without the need for complex explanations or training.
+
+### Enforced strong passwords
+
+The current iteration of the project allows users to create a password of any length to be input, I plan on adding checks to ensure that passwords have to meet a certain criteria, such as length and character variation.
 
 ## License
 

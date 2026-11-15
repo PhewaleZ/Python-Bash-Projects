@@ -11,6 +11,12 @@ class IPRequest(BaseModel):
     @field_validator("target_ip")
     @classmethod
     def check_target_ip(cls, target_ip: IPv4Address | IPv6Address):
+        if not target_ip:
+            raise HTTPException(
+                status_code=422,
+                detail="The 'target_ip' field is empty"
+            )
+
         if not target_ip.is_global:
             raise HTTPException(
                 status_code=422,
@@ -45,6 +51,7 @@ class FileRequest(BaseModel):
     target_hash: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
     file_id:str = "Not Specified"
     scan_engines: list[str]
+
     @field_validator("scan_engines")
     @classmethod
     def check_scan_engines(cls, scan_engines:list[str]):
@@ -70,6 +77,16 @@ class URLRequestLight(BaseModel):
     url_id: str="Not Specified"
     target_url: str
     scan_engines: list[str]
+    @field_validator("target_url")
+    def check_target_url(cls, target_url:str):
+        if not target_url:
+            raise HTTPException(
+                status_code=422,
+                detail="The 'target_url' field is empty"
+            )
+        else:
+            return target_url
+        
     @field_validator("scan_engines")
     @classmethod
     def check_scan_engines(cls, scan_engines:list[str]):
@@ -95,11 +112,32 @@ class URLRequestHeavy(BaseModel):
     url_id: str="Not Specified"
     target_url: str
 
+    @field_validator("target_url")
+    def check_target_url(cls, target_url:str):
+        if not target_url:
+             raise HTTPException(
+                    status_code=422,
+                    detail="The 'target_url' field is empty"
+                )
+        else:
+            return target_url
+        
 class DomainRequest(BaseModel):
     username: str
     domain_id: str="Not Specified"
     target_domain: str
     scan_engines: list[str]
+    @field_validator("target_domain")
+    @classmethod
+    def check_target_domain(cls, target_domain:str):
+        if not target_domain:
+            raise HTTPException(
+                status_code=422,
+                detail="The 'target_domain' field is empty"
+            )
+        else:
+            return target_domain
+
     @field_validator("scan_engines")
     @classmethod
     def check_scan_engines(cls, scan_engines: list[str]):

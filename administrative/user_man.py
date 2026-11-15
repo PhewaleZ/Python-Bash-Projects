@@ -62,6 +62,10 @@ def create_user():
         prop_username = "".join(prop_username.split())
         #The return key function is used as if None is returned by the func, then the username doesnt exist
 
+        if not prop_username:
+            print("Input a valid username")
+            continue
+
         if prop_username.lower() == "quit":
             print("Aborting")
             break
