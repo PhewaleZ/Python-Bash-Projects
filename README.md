@@ -29,18 +29,18 @@ Throughout the development of this project, I have been able to advance my knowl
 - Backend Systems
 - Data Interpretation and Fusion
 - Development of Secure Software
-- Git
+- Git Commands
 - Relational Databases (Postgresql)
 - Python (FastAPI)
 - API's
 
 ## Why I designed it
 
-As part of my journey into the domain of cybersecurity and programming, I learned the importance of threat intelligence and software which can provide meaningful information. I then developed an interest in the development of these software and their role in cybersecurity. As this interest grew, my knowledge and interest in API's was also expanding. It didn't take long before I identified a problem I believed I had the skills to attempt to mitigate:
+As part of my journey into the domain of cybersecurity and programming, I learned the importance of threat intelligence and software which can provide meaningful information. I then developed an interest in the development of these software and their role in cybersecurity. At the same time, my knowledge and interest in API's was also expanding. It didn't take long before I identified a problem I believed I had the skills to to mitigate:
 
 **How much time is spent constantly accessing and logging into websites such as IPinfo to just specify an IP address then leave onto the next website?**
 
-I decided to create a central software which could simplify the tedious process and allow threat intelligence to be conducted from anywhere as long as internet connectivity is provided.
+I decided to create a central software which could simplify the tedious process and allow threat intelligence lookups to be conducted from anywhere as long as internet connectivity is provided.
 
 ## Directory Structure
 
@@ -48,7 +48,7 @@ The directory structure of the project is easy to follow and intuitive.
 
 ### main.py
 
-This is where the main API logic is kept and where the uvicorn runs from.
+This is where the main API logic is kept and where the uvicorn is run from.
 
 ### pyd_models.py
 
@@ -59,7 +59,7 @@ There is a general HTTP json body format followed by all endpoints:
 - username
 - target
 - optional id
-- scan engines to be used
+- scan engines
 
 Each endpoint expects a slightly differently named attribute but the general structure is universal.
 
@@ -90,7 +90,7 @@ This subdirectory contains 3 important files:
 
 There are 6 endpoints, which all follow RESTful API design guidelines.
 
-All 6 exclusively accept POST requests, their respective paths and the API's they query are:
+All 6 exclusively accept POST requests, their respective paths and the API's they can query are:
 
 - /filescans (VirusTotal, Alienvault)
 - /domainscans (VirusTotal, Alienvault)
@@ -98,10 +98,11 @@ All 6 exclusively accept POST requests, their respective paths and the API's the
 - /urlscans/heavyscans (Alienvault)
 - /urlscans/lightscans (VirusTotal, Alienvault)
 
-For the "ipscans" endpoint ipinfo is included by default, you do not have to include it into the http request.
+Ipinfo is included by default for the "ipscans" endpoint, you do not have to include it into the http request.
 
-The names are indicative of their purpose, for further clarification, the "urlscans" endpoint has two nested resources.
-"heavyscans" is sends the request to otx.alienvault.com for sandbox analysis and only a link to it is returned, it does not support any other scan engine such as virustotal.
+The "urlscans" endpoint has two nested resources.
+
+"heavyscans" sends the request to otx.alienvault.com for sandbox analysis and only a link to it is returned, it does not support any other scan engine such as virustotal.
 
 "lighscans", this endpoint exclusively supports virustotal and alienvault, is much less comprehensive, quicker and returns an actual analysis.
 
@@ -115,8 +116,6 @@ Security measures should be implemented at all relevant layers, not just at the 
 - multilayered security
 - Storing keys as hashes
 - masked input fields for password input
-
-For security reasons, any apikey which may or may not have appeared has been rotated
 
 A threat may attempt to acquire information on whether or not a specific user is in the database, to help combat this, if a username does not exist, a "dummy" password is hashed and passed into bcrypt.
 
@@ -251,7 +250,7 @@ Examples of commands I commonly used:
 - git commit
 - git log
 - git push
-- git merge
+- git status
 
 ### Modular Programming
 
@@ -282,6 +281,10 @@ Instead of having users conduct a post request with the linux command curl or an
 ### Enforced strong passwords
 
 The current iteration of the project allows users to create a password of any length to be input, I plan on adding checks to ensure that passwords have to meet a certain criteria, such as length and character variation.
+
+### Caching
+
+Conducting a scan on a domain or ip address which has already been scanned is an inefficient usage of the limited API quota provided by certain IOC lookup tools, caching is something I believe could mitigate this problem by storing the results of a recent target and allowing it to be quickly retrieved by users.
 
 ## License
 
