@@ -214,19 +214,19 @@ sudo docker compose down -v
 
 ### user_man.py
 
-To access the user_man.py file, which allows for administrative management, the following command will take you into the containers file system
+To access the user_man.py file, which allows for administrative management, the following command will take you into the containers file system.
 
 ```bash
 sudo docker exec -it cyber_api bash
 ```
 
-To run the user_man.py file, input the following command, from the main directory of the software
+To run the user_man.py file, input the following command, from the main directory of the software.
 
 ```bash
 python -m administrative.user_man
 ```
 
-credentials are required to access the administrative features such as creating a new user, changing a users administrative authorization and extracting logs.
+Credentials are required to access administrative features such as creating a new user, changing a users administrative authorization and extracting logs.
 
 Upon filling out the environmental variable file, those same credentials wll create the first user with administrative privileges.
 
@@ -234,7 +234,7 @@ Upon filling out the environmental variable file, those same credentials wll cre
 
 ### Type Safety
 
-In the earlier iterations of the application, I frequently ignored pylance messages informing me that a variable may be unbound or a function may not return the specified variable type in all possible paths. I used this project as an opportunity to better understand static type checking and how to better utilize pylance to minimize logical errors in code where a variable doesn't belong to the anticipated type therefore catching errors before the code is run.
+In the earlier iterations of the application, I frequently ignored pylance messages informing me that a variable may be unbound or a function may not return the specified variable type in all possible paths. I used this project as an opportunity to better understand static type checking and how to better utilize pylance to minimize logical errors in code where a variable doesn't belong to the anticipated type therefore catching errors much sooner.
 
 ### Exception Handling
 
@@ -264,6 +264,8 @@ To help ensure that the application could be easily start up by anyone, containe
 docker image
 docker ps
 docker logs
+docker compose up --build -d
+docker compose down -v
 ```
 
 In addition, the incorporation of a yaml file allowed me to also acquire hands on experience with automating the deployment of docker containers.
