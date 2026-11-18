@@ -3,52 +3,63 @@ from os import getenv
 import requests
 import json
 from ipaddress import IPv4Address, IPv6Address
+import httpx
+import asyncio
 
+async def make_request(
+    client: httpx.AsyncClient,
+    API_KEY: str,
+    is_own_ip: bool,
+    target_ip: IPv4Address | IPv6Address
+) -> tuple[bool, str | httpx.Response]:
 
-def make_request(API_KEY: str, is_own_ip: bool, target_ip: IPv4Address|IPv6Address) -> tuple[bool, str|requests.Response]:
     last_error = ''
-    url = ''
+
     if is_own_ip is False:
         url = f"https://api.ipinfo.io/lite/{target_ip}?token={API_KEY}"
-
-    if is_own_ip is True:
+    else:
         url = f"https://api.ipinfo.io/lite/me?token={API_KEY}"
 
     for _ in range(4):
         try:
-            response = requests.get(url=url, timeout=8)
+            response = await client.get(url=url, timeout=8)
             response.raise_for_status()
-        except requests.exceptions.Timeout:
-            return (False, "Could not communicate with the IPINFO server, TIMEOUT occured.")
-        
-        except requests.exceptions.ConnectionError:
+
+        except httpx.TimeoutException:
+            return (False, "Could not communicate with the IPINFO server, TIMEOUT occurred.")
+
+        except httpx.ConnectError:
             return (False, "Could not connect to the IPINFO API server.")
-        
-        except requests.exceptions.HTTPError as e:
-            if e.response is None:
-                return (False, str(e))
+
+        except httpx.HTTPStatusError as e:
             match e.response.status_code:
                 case 403:
                     return (False, "Access denied by IPINFO server")
+
                 case 429:
-                    #NOTE: The ipinfo API endpoint is the free tier and it offers unlimited requests.
                     return (False, "The IPINFO server has throttled this request")
+
                 case 400 | 401 | 404:
-                    return (False, f"The following error has occured with the IPINFO API query: {str(e)} ")
+                    return (False, f"The following error has occurred with the IPINFO API query: {str(e)}")
+
                 case _:
-                    last_error = f"IPINFO ERROR: HTTP {e.response.status_code}: {e.response.reason}"
+                    last_error = (
+                        f"IPINFO ERROR: HTTP {e.response.status_code}: "
+                        f"{e.response.reason_phrase}"
+                    )
                     continue
-        
-        except requests.exceptions.RequestException as e:
-            assert e.response is not None
-            last_error = f"IPINFOR ERROR: HTTP code {e.response.status_code}: {e.response.reason}" 
+
+        except httpx.RequestError as e:
+            last_error = f"IPINFO ERROR: {str(e)}"
             continue
+
         else:
             return (True, response)
-            
+
     return (False, last_error)
+
     
-def aggregate_results(rec_response: requests.Response) -> dict:
+def aggregate_results(rec_response: httpx._models.Response) -> dict:
     json_rec_response = rec_response.json()
     
     ipinfo_results={
@@ -60,14 +71,15 @@ def aggregate_results(rec_response: requests.Response) -> dict:
     }
     return ipinfo_results
 
-def Ipinfoscan(target_ip: IPv4Address| IPv6Address) -> tuple[bool, str| dict ]:
-    load_dotenv()
+async def Ipinfoscan(target_ip: IPv4Address| IPv6Address, httpxclient: httpx.AsyncClient) -> tuple[bool, str| dict ]:
+    load_dotenv(override=True)
     API_KEY = getenv("IPINFO_API_KEY")
+    print(API_KEY)
     
     if API_KEY is None:
         return (False, 'IPINFO api key is None')
     
-    response_check = make_request(API_KEY=API_KEY, is_own_ip=False, target_ip=target_ip)
+    response_check = await make_request(API_KEY=API_KEY, is_own_ip=False, target_ip=target_ip, client=httpxclient)
 
     if response_check[0] is True:
         assert not isinstance(response_check[1], str)
@@ -97,4 +109,20 @@ def testing_function():
         json.dump(obj=json_response, fp=f, indent=4)
 
 if __name__ == "__main__":
-    testing_function()
+    async def stuff():
+            async with asyncio.TaskGroup() as tg:
+                async with httpx.AsyncClient() as client:
+                    task1 = tg.create_task(Ipinfoscan(IPv4Address("8.8.8.8"), client))
+                    task2 = tg.create_task(Ipinfoscan(IPv4Address("1.1.1.1"), client))
+
+                    result1 = await task1
+                    result2 = await task2
+
+            results = [result1, result2]
+
+            print(results, "\n")
+            with open("asynctest1.json", "w") as file:
+                json.dump(results, fp=file, indent=4 )
+            
+
+    asyncio.run(stuff())
