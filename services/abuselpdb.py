@@ -1,12 +1,13 @@
-import requests
 import json
 from time import sleep
 from os import getenv
 from dotenv import load_dotenv
 from ipaddress import IPv4Address, IPv6Address
+import httpx
+import asyncio
 
 #The report_age parameter is used to determine how old the reports retrieved by abuselpdb API can, at max, be
-def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, report_age=90) -> tuple[bool, str|dict]:
+async def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, httpxclient: httpx.AsyncClient,report_age=90, ) -> tuple[bool, str|dict]:
     last_error = ''
     load_dotenv()
     API_KEY=getenv("ABUSELPDB_API_KEY")
@@ -28,16 +29,16 @@ def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, report_age=90) -> tuple[bo
 
     for _ in range(4):
                 try:
-                    response = requests.get(url=url, headers=headers,timeout=10, params=querystring)
+                    response = await httpxclient.get(url=url, headers=headers, timeout=10, params=querystring)
                     response.raise_for_status()
-    
-                except requests.exceptions.Timeout:
+
+                except httpx.TimeoutException:
                     return (False, "Couldn't communicate with the Abuselpdb's API server, TIMEOUT occured.")
                 
-                except requests.exceptions.ConnectionError:
+                except httpx.ConnectError:
                     return (False, "Could not connect to the Abuselpdb's API server.")
             
-                except requests.exceptions.HTTPError as e:
+                except httpx.HTTPStatusError as e:
                     if e.response is None:
                         return (False, str(e))
                     match e.response.status_code:
@@ -48,12 +49,12 @@ def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, report_age=90) -> tuple[bo
                         case 400 | 401 | 404:
                             return (False, f"The following error has occured with the Abuselpdb API query: {str(e)} ")
                         case _:
-                            last_error = f"ABUSELPDB ERROR: HTTP {e.response.status_code}: {e.response.reason}"
+                            last_error = f"ABUSELPDB ERROR: HTTP {e.response.status_code}: {e.response.reason_phrase}"
                             sleep(5)
                             continue
             
-                except requests.exceptions.RequestException as e:
-                    last_error = f"HTTP code: {e.response.status_code}: {e.response.reason}" #type: ignore as this error will never occur in normal circumstances
+                except httpx.RequestError as e:
+                    last_error = f"ABUSELPDB ERROR: {str(e)}"
                     sleep(5)
                     continue
         
@@ -64,78 +65,62 @@ def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, report_age=90) -> tuple[bo
     return (False, last_error)
 
 
-def aggregate_apdb_results(rec_response: requests.Response) -> dict:
+def aggregate_apdb_results(rec_response: httpx.Response) -> dict:
     json_rec_response= rec_response.json()
     
-    concern = ''
-    rec_response = rec_response.json()
-    data = json_rec_response["data"]
-    abpdb_score = data["abuseConfidenceScore"]
+    data = json_rec_response.get("data") or {}
+    abpdb_score = data.get("abuseConfidenceScore")
+    concern = None
 
-    match abpdb_score:
-        case x if 0<=abpdb_score<20:
-            concern = "level 3"
-        case x if 20<=abpdb_score<60:
-            concern = "level 2"
-        case x if 60<=abpdb_score:
-            concern = "level 1"
+    if abpdb_score is not None:
+        match abpdb_score:
+            case x if 0 <= x < 20:
+                concern = "level 3"
+            case x if 20 <= x < 60:
+                concern = "level 2"
+            case x if 60 <= x:
+                concern = "level 1"
 
     
     formatted_response = {
-        "target_name": data["ipAddress"],
-        "is_whitelist": data["isWhitelisted"],
-        "is_tor":data["isTor"],
-        "country_of_origin": data["countryCode"],
-        "is_whitelisted":data["isWhitelisted"],
-        "domain":data["domain"],
+        "target_name": data.get("ipAddress"),
+        "is_whitelist": data.get("isWhitelisted"),
+        "is_tor": data.get("isTor"),
+        "country_of_origin": data.get("countryCode"),
+        "is_whitelisted": data.get("isWhitelisted"),
+        "domain": data.get("domain"),
         "concern":{
-            "abusel_score": data["abuseConfidenceScore"],
+            "abusel_score": abpdb_score,
             "concern_value":concern
         },
         "isp_details":{
-            "isp_name":data["isp"],
-            "isp_type":data["usageType"]
+            "isp_name": data.get("isp"),
+            "isp_type": data.get("usageType")
         },
         "report_details":{
-            "report_count":data["totalReports"],
-            "reports":data.get("reports", None)
+            "report_count": data.get("totalReports"),
+            "reports": data.get("reports")
             }
     }
 
     return formatted_response
 
-#NOTE: This function acts as a testing function for catching erros and evaluating abuselpdb's endpoine
-def testing_function():
-    load_dotenv()
-    API_key=getenv("ABUSELPDB_API_KEY")
-    url = 'https://api.abuseipdb.com/api/v2/check'
-
-    target = "197.249.236.235"
-    querystring = {
-    'ipAddress': target,
-    'maxAgeInDays': '90'
-        }
-
-    headers = {
-    'Accept': 'application/json',
-    'Key': API_key
-        }
-    print(f"The key is {API_key}")
-    try:
-        response = requests.request(method='GET', url=url, headers=headers, params=querystring)
-        print(response)
-        print("linebreak here")
-        print(f"The status code is: {response.status_code}")
-    except requests.exceptions.Timeout:
-        print("timeout")
-        return 1
-
-    decodedResponse = json.loads(response.text)
-    with open ("abpdb.json", "w") as file:
-        json.dump(obj=decodedResponse, fp=file, indent=4)
-
-    print("DONE")
-    return 0
-
+#This function is for testing purposes only
 if __name__ == "__main__":
-    testing_function()
+    async def stuff():
+            async with asyncio.TaskGroup() as tg:
+                async with httpx.AsyncClient() as client:
+                    task1 = tg.create_task(scan_ip_apdb(target_ip=IPv4Address("8.8.8.8"), httpxclient=client, report_age=90))
+                    task2 = tg.create_task(scan_ip_apdb(target_ip=IPv4Address("1.1.1.1"), httpxclient=client, report_age=90))
+
+                    result1 = await task1
+                    result2 = await task2
+
+            results = [result1, result2]
+
+            print(results, "\n")
+            with open("asynctest1.json", "w") as file:
+                json.dump(results, fp=file, indent=4 )
+            
+
+    asyncio.run(stuff())

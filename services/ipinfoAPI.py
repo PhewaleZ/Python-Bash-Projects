@@ -26,10 +26,12 @@ async def make_request(
             response.raise_for_status()
 
         except httpx.TimeoutException:
-            return (False, "Could not communicate with the IPINFO server, TIMEOUT occurred.")
+            last_error = "Could not communicate with the IPINFO server, TIMEOUT occurred."
+            continue
 
         except httpx.ConnectError:
-            return (False, "Could not connect to the IPINFO API server.")
+            last_error = "Could not connect to the IPINFO API server."
+            continue
 
         except httpx.HTTPStatusError as e:
             match e.response.status_code:
@@ -63,21 +65,20 @@ def aggregate_results(rec_response: httpx._models.Response) -> dict:
     json_rec_response = rec_response.json()
     
     ipinfo_results={
-        "IP Address": json_rec_response["ip"],
-        "asn_code": json_rec_response["asn"],
-        "as_name": json_rec_response["as_name"],
-        "as_domain": json_rec_response["as_domain"],
-        "country": json_rec_response["country"],
+        "IP Address": json_rec_response.get("ip"),
+        "asn_code": json_rec_response.get("asn"),
+        "as_name": json_rec_response.get("as_name"),
+        "as_domain": json_rec_response.get("as_domain"),
+        "country": json_rec_response.get("country"),
     }
     return ipinfo_results
 
 async def Ipinfoscan(target_ip: IPv4Address| IPv6Address, httpxclient: httpx.AsyncClient) -> tuple[bool, str| dict ]:
     load_dotenv(override=True)
     API_KEY = getenv("IPINFO_API_KEY")
-    print(API_KEY)
     
     if API_KEY is None:
-        return (False, 'IPINFO api key is None')
+        return (False, 'IPINFO API key is None')
     
     response_check = await make_request(API_KEY=API_KEY, is_own_ip=False, target_ip=target_ip, client=httpxclient)
 
@@ -90,7 +91,7 @@ async def Ipinfoscan(target_ip: IPv4Address| IPv6Address, httpxclient: httpx.Asy
         return (False, response_check[1])
 
 
-#NOTE: This function acts as a testing function for catching erros and evaluating ipinfo's endpoine
+#NOTE: These 2 function are for testing
 def testing_function():
     load_dotenv()
     API_key = getenv("IPINFO_API_KEY")
