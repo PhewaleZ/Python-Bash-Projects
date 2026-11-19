@@ -116,6 +116,7 @@ Security measures should be implemented at all relevant layers, not just at the 
 - multilayered security
 - Storing keys as hashes
 - masked input fields for password input
+- Account keys created or changed by the administrative CLI require at least 16 characters, use at least three character groups, and fit bcrypt's 72-byte input limit.
 
 A threat may attempt to acquire information on whether or not a specific user is in the database, to help combat this, if a username does not exist, a "dummy" password is hashed and passed into bcrypt.
 
@@ -279,10 +280,6 @@ To help provide more stable, efficient, asynchronous server responses, incorpora
 ### User Interface
 
 Instead of having users conduct a post request with the linux command curl or any other alternative, providing a us interface whether CLI or GUI, would allow less tech-savvy to better understand how to make use of the software. Making the software more accessible results in a shallower learning curve, allowing individuals to quickly make use of the software without the need for complex explanations or training.
-
-### Enforced strong passwords
-
-The current iteration of the project allows users to create a password of any length to be input, I plan on adding checks to ensure that passwords have to meet a certain criteria, such as length and character variation.
 
 ### Caching
 

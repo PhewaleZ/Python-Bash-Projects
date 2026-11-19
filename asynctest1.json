@@ -1,0 +1,48 @@
+[
+    [
+        true,
+        {
+            "target_name": "8.8.8.8",
+            "is_whitelist": true,
+            "is_tor": false,
+            "country_of_origin": "US",
+            "is_whitelisted": true,
+            "domain": "google.com",
+            "concern": {
+                "abusel_score": 0,
+                "concern_value": "level 3"
+            },
+            "isp_details": {
+                "isp_name": "Google LLC",
+                "isp_type": "Content Delivery Network"
+            },
+            "report_details": {
+                "report_count": 199,
+                "reports": null
+            }
+        }
+    ],
+    [
+        true,
+        {
+            "target_name": "1.1.1.1",
+            "is_whitelist": true,
+            "is_tor": false,
+            "country_of_origin": "AU",
+            "is_whitelisted": true,
+            "domain": "cloudflare.com",
+            "concern": {
+                "abusel_score": 0,
+                "concern_value": "level 3"
+            },
+            "isp_details": {
+                "isp_name": "APNIC and Cloudflare DNS Resolver project",
+                "isp_type": "Content Delivery Network"
+            },
+            "report_details": {
+                "report_count": 274,
+                "reports": null
+            }
+        }
+    ]
+]
