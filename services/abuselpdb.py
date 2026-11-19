@@ -1,5 +1,4 @@
 import json
-from time import sleep
 from os import getenv
 from dotenv import load_dotenv
 from ipaddress import IPv4Address, IPv6Address
@@ -50,12 +49,12 @@ async def scan_ip_apdb(target_ip: IPv6Address| IPv4Address, httpxclient: httpx.A
                             return (False, f"The following error has occured with the Abuselpdb API query: {str(e)} ")
                         case _:
                             last_error = f"ABUSELPDB ERROR: HTTP {e.response.status_code}: {e.response.reason_phrase}"
-                            sleep(5)
+                            await asyncio.sleep(5)
                             continue
             
                 except httpx.RequestError as e:
                     last_error = f"ABUSELPDB ERROR: {str(e)}"
-                    sleep(5)
+                    await asyncio.sleep(5)
                     continue
         
                 else:

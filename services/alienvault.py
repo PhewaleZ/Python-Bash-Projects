@@ -65,9 +65,9 @@ async def make_get_request(query_type: Literal["IPV4", "IPV6", "DOMAIN", "HOSTNA
     return (False, last_error)
 
 
-async def scan_file_av(file_hash: str) -> tuple[bool, str| dict]:
-    async with httpx.AsyncClient() as client:
-        result = await make_get_request(query_type="HASH", target_detail=file_hash, client=client)
+async def scan_file_av(file_hash: str, httpxclient: httpx.AsyncClient) -> tuple[bool, str| dict]:
+
+    result = await make_get_request(query_type="HASH", target_detail=file_hash, client=httpxclient)
 
     if result[0] is True:
         assert isinstance(result[1], httpx.Response)
@@ -77,12 +77,12 @@ async def scan_file_av(file_hash: str) -> tuple[bool, str| dict]:
         assert isinstance(result[1], str)
         return (False, result[1])
 
-async def scan_ip_av(target_ip: IPv4Address| IPv6Address) -> tuple:
-    async with httpx.AsyncClient() as client:
-        if isinstance(target_ip, IPv4Address) is True:
-            result = await make_get_request(query_type="IPV4", target_detail=target_ip, client=client)
-        else:
-            result = await make_get_request(query_type="IPV6", target_detail=target_ip, client=client)
+async def scan_ip_av(target_ip: IPv4Address| IPv6Address, httpxclient: httpx.AsyncClient) -> tuple:
+
+    if isinstance(target_ip, IPv4Address) is True:
+        result = await make_get_request(query_type="IPV4", target_detail=target_ip, client=httpxclient)
+    else:
+        result = await make_get_request(query_type="IPV6", target_detail=target_ip, client=httpxclient)
 
     if result[0] is True:
         assert isinstance(result[1], httpx.Response)
@@ -92,9 +92,8 @@ async def scan_ip_av(target_ip: IPv4Address| IPv6Address) -> tuple:
         assert isinstance(result[1], str)
         return (False, result[1])
 
-async def scan_domain_av(target_domain: str) -> tuple[bool, str|dict]:
-    async with httpx.AsyncClient() as client:
-        result = await make_get_request(query_type="DOMAIN", target_detail=target_domain, client=client)
+async def scan_domain_av(target_domain: str, httpxclient: httpx.AsyncClient) -> tuple[bool, str|dict]:
+    result = await make_get_request(query_type="DOMAIN", target_detail=target_domain, client=httpxclient)
 
     if result[0] is True:
         assert isinstance(result[1], httpx.Response)
@@ -146,7 +145,7 @@ def aggregate_av_results(rec_response: httpx.Response) -> dict:
 
     return (formatted_response)
 
-def make_post_request(target_detail: str) -> tuple[bool, str|requests.Response]:
+async def make_post_request(target_detail: str, client: httpx.AsyncClient) -> tuple[bool, str|httpx.Response]:
     last_error = ''
     load_dotenv()
     API_KEY= getenv("AV_API_KEY")
@@ -160,36 +159,34 @@ def make_post_request(target_detail: str) -> tuple[bool, str|requests.Response]:
 }
 
     for _ in range(4):
-            try:
-                response = requests.post(url=url, headers=header, data=data,timeout=30)
-                response.raise_for_status()
+        try:
+            response = await client.post(url=url, headers=header, data=data, timeout=30)
+            response.raise_for_status()
 
-            except requests.exceptions.Timeout:
-                return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
-            
-            except requests.exceptions.ConnectionError:
-                return (False, "Could not connect to the Alienvault's API server.")
-        
-            except requests.exceptions.HTTPError as e:
-                if e.response is None:
-                    return (False, str(e))
-                match e.response.status_code:
-                    case 403:
-                        return (False, "Access denied by Alienvault's API server")
-                    case 429:
-                        return (False, "The rate limit for the Alienvault's API server has been reached")
-                    case 400 | 401 | 404:
-                        return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
-                    case _:
-                        last_error = f"ALIENVAULT ERROR: HTTP {e.response.status_code}: {e.response.reason}"
-                        continue
-        
-            except requests.exceptions.RequestException as e:
-                assert e.response is not None
-                last_error = f"ALIENVAULT ERROR: HTTP {e.response.status_code}: {e.response.reason}"
-                continue
-            else:
-                return(True, response)
+        except httpx.TimeoutException:
+            return (False, "Couldn't communicate with the Alienvault's API server, TIMEOUT occured.")
+
+        except httpx.ConnectError:
+            return (False, "Could not connect to the Alienvault's API server.")
+
+        except httpx.HTTPStatusError as e:
+            match e.response.status_code:
+                case 403:
+                    return (False, "Access denied by Alienvault's API server")
+                case 429:
+                    return (False, "The rate limit for the Alienvault's API server has been reached")
+                case 400 | 401 | 404:
+                    return (False, f"The following error has occured with the Alienvault's API query: {str(e)} ")
+                case _:
+                    last_error = f"ALIENVAULT ERROR: HTTP {e.response.status_code}: {e.response.reason_phrase}"
+                    continue
+
+        except httpx.RequestError as e:
+            last_error = f"ALIENVAULT ERROR: {str(e)}"
+            continue
+
+        else:
+            return (True, response)
     
     return (False, last_error)
 
@@ -214,13 +211,13 @@ async def scan_url_av(target_url: str, scan_type: Literal["LIGHT_URL", "HEAVY_UR
             return (True, AV_result)
 
     else:
-        result_check = make_post_request(target_detail=target_url)
+        result_check = await make_post_request(target_detail=target_url, client=httpxclient)
 
         if result_check[0] is False:
             assert isinstance(result_check[1], str)
             return (False, result_check[1]) 
         else:
-            assert isinstance(result_check[1], requests.Response)
+            assert isinstance(result_check[1], httpx.Response)
             result_json = result_check[1].json() 
 
         #NOTE: The variable is deliberately overwritten

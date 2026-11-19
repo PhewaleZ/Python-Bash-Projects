@@ -10,7 +10,28 @@ confirm_options = ["y", "n"]
 db = SessionLocal()
 abort_opt = "You may input 'quit' to abort"
 
+def key_validation_error(password: str) -> str | None:
+    if len(password) < 16:
+        return "The key must be at least 16 characters long"
+    if len(password.encode("utf-8")) > 72:
+        return "The key must be no more than 72 UTF-8 bytes"
+
+    character_groups = (
+        any(character.islower() for character in password),
+        any(character.isupper() for character in password),
+        any(character.isdigit() for character in password),
+        any(not character.isalnum() for character in password),
+    )
+    if sum(character_groups) < 3:
+        return "The key must use characters from at least three groups: lowercase, uppercase, digits, symbols"
+
+    return None
+
 def hash_key(password: str) -> str:
+    validation_error = key_validation_error(password)
+    if validation_error is not None:
+        raise ValueError(validation_error)
+
     byte_prop_key = password.encode()
     salt = bcrypt.gensalt()
     key = bcrypt.hashpw(password=byte_prop_key, salt=salt)
@@ -88,8 +109,12 @@ def create_user():
             if confirm != prop_key:
                 print("The input keys do not match")
                 continue
-            else: 
-                break
+
+            validation_error = key_validation_error(prop_key)
+            if validation_error is not None:
+                print(validation_error)
+                continue
+            break
 
         flag1 = True
         key = hash_key(password=prop_key)
@@ -208,11 +233,15 @@ def change_key():
             if confirm != prop_key:
                 print("The keys do not match")
                 continue
-            elif prop_key == current_key:
+            elif bcrypt.checkpw(prop_key.encode(), current_key.encode()):
                 print("The new key can not be the same as the old one")
                 continue
-            else: 
-                break
+
+            validation_error = key_validation_error(prop_key)
+            if validation_error is not None:
+                print(validation_error)
+                continue
+            break
 
         hashed_key = hash_key(password=prop_key)
         change_user_key(db=db, target_username=target_username, new_key=hashed_key)
