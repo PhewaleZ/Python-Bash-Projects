@@ -273,10 +273,6 @@ In addition, the incorporation of a yaml file allowed me to also acquire hands o
 
 ## Potential Improvements
 
-### Async Functions
-
-To help provide more stable, efficient, asynchronous server responses, incorporating asynchronus functions would allow requests to be sent to other external API's while awaiting a response from an already queried external API. This would allow for better and more efficient usage of computing resources and allow the software to better accomodate a large number of users. Async functions is something I will be eventually adding to the project once my understanding of asyncio module improves.
-
 ### User Interface
 
 Instead of having users conduct a post request with the linux command curl or any other alternative, providing a us interface whether CLI or GUI, would allow less tech-savvy to better understand how to make use of the software. Making the software more accessible results in a shallower learning curve, allowing individuals to quickly make use of the software without the need for complex explanations or training.
@@ -284,6 +280,12 @@ Instead of having users conduct a post request with the linux command curl or an
 ### Caching
 
 Conducting a scan on a domain or ip address which has already been scanned is an inefficient usage of the limited API quota provided by certain IOC lookup tools, caching is something I believe could mitigate this problem by storing the results of a recent target and allowing it to be quickly retrieved by users.
+
+## Implemented Improvements
+
+### Async Operations
+
+The software now supports async operations using the httpx module, resulting in better and more efficient operation.
 
 ## License
 
