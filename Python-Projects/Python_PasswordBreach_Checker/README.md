@@ -98,4 +98,4 @@ As time progresses and my skills improve I will look into this project again and
 
 ## License
 
-[License](../LICENSE)
+[License](./LICENSE)
