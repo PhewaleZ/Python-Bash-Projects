@@ -98,6 +98,4 @@ As time progresses and my skills improve I will look into this project again and
 
 ## License
 
-My project is intended for educational and portfolio purposes.
-
-The Have I Been Pwned API remains the property of its respective owner and is used in accordance with its published API guidelines.
+[License](../LICENSE)
