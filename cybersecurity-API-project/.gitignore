@@ -1,0 +1,9 @@
+.env
+.git
+__pycache__
+services/__pycache__
+database/__pycache__
+.vscode
+administrative/__pycache__
+services/testing.py
+

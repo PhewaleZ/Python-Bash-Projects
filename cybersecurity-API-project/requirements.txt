@@ -1,0 +1,9 @@
+fastapi==0.136.1
+uvicorn==0.46.0
+SQLAlchemy==2.0.49
+requests==2.34.2
+httpx==0.28.1
+bcrypt==5.0.0
+python-dotenv==1.2.2
+uuid6==2025.0.1
+psycopg[binary]==3.3.4
