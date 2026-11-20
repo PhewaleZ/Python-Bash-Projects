@@ -67,3 +67,7 @@ In this Github repo, I have included a directory called `test1`. Within this dir
 3. The script will sort out the the files in the directory and will inform you that no matches were found for the extension "c". This sort of info will only appear if a match wasnt found for one or more extensions.
 4. You will be informed of a ".txt" file being created, called `directory_analysis.txt`. This file contains te number of files matched to each extension along with the date and time the sorting process took place.
 5. You can view the contents of this file by inputting the following command `cat directory_analysis.txt` or by opening it. Take note that this "analysis file" is always created in the directory which was sorted.
+
+## LICENSE
+
+[LICENSE](./LICENSE)
